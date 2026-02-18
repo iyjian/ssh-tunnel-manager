@@ -23,6 +23,7 @@
   ],
   "author": "",
   "license": "MIT",
+  "productName": "SSH Tunnel Manager",
   "build": {
     "appId": "com.wuchong.sshtunnelmanager",
     "productName": "SSH Tunnel Manager",

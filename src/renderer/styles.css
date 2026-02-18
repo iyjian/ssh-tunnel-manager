@@ -180,6 +180,18 @@ textarea {
   color: var(--color-text-primary);
 }
 
+#stat-running {
+  color: var(--color-success-500);
+}
+
+#stat-stopped {
+  color: var(--color-text-tertiary);
+}
+
+#stat-errors {
+  color: var(--color-error-500);
+}
+
 .quick-actions {
   margin-top: var(--space-3);
   display: flex;
@@ -609,6 +621,32 @@ td {
   font-size: var(--font-size-sm);
 }
 
+.auto-start-cell {
+  text-align: left;
+}
+
+.auto-start-indicator {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.auto-start-indicator svg {
+  width: 14px;
+  height: 14px;
+}
+
+.auto-start-enabled {
+  color: var(--color-success-500);
+}
+
+.auto-start-disabled {
+  color: var(--color-error-500);
+}
+
 .host-rules-head th:nth-child(5),
 .data-row td:nth-child(5) {
   width: 112px;
@@ -620,16 +658,26 @@ td {
   padding: var(--space-6) var(--space-4);
 }
 
-.status-pill {
+.status-indicator {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   min-width: 80px;
-  border-radius: var(--radius-xs);
-  padding: 2px 8px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 5px;
+}
+
+.status-label {
+  line-height: 1.2;
 }
 
 .status-wrap {
@@ -659,22 +707,18 @@ td {
 }
 
 .status-running {
-  background: var(--color-success-bg);
   color: var(--color-success-500);
 }
 
 .status-error {
-  background: var(--color-error-bg);
   color: var(--color-error-500);
 }
 
 .status-transition {
-  background: var(--color-warning-bg);
   color: var(--color-warning-500);
 }
 
 .status-stopped {
-  background: var(--color-bg-subtle);
   color: var(--color-text-tertiary);
 }
 

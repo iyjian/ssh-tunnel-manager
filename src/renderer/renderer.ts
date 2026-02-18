@@ -514,44 +514,74 @@ function resetForm(): void {
   toggleJumpSection();
 }
 
-function createStatusPill(status: string, error?: string): HTMLSpanElement {
-  const pill = document.createElement('span');
-  pill.className = 'status-pill';
+function createStatusIndicator(status: string): HTMLSpanElement {
+  const indicator = document.createElement('span');
+  indicator.className = 'status-indicator';
 
   if (status === 'running') {
-    pill.classList.add('status-running');
+    indicator.classList.add('status-running');
   } else if (status === 'error') {
-    pill.classList.add('status-error');
+    indicator.classList.add('status-error');
   } else if (status === 'starting' || status === 'stopping') {
-    pill.classList.add('status-transition');
+    indicator.classList.add('status-transition');
   } else {
-    pill.classList.add('status-stopped');
+    indicator.classList.add('status-stopped');
   }
 
-  pill.textContent = status;
-  pill.setAttribute('aria-label', status);
+  const dot = document.createElement('span');
+  dot.className = 'status-dot';
+  dot.setAttribute('aria-hidden', 'true');
 
-  return pill;
+  const label = document.createElement('span');
+  label.className = 'status-label';
+  label.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+
+  indicator.append(dot, label);
+  indicator.setAttribute('aria-label', label.textContent ?? status);
+
+  return indicator;
 }
 
 function createStatusContent(status: string, error?: string): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'status-wrap';
 
-  const pill = createStatusPill(status, error);
-  wrap.appendChild(pill);
+  const indicator = createStatusIndicator(status);
+  wrap.appendChild(indicator);
 
   if (!error) {
     return wrap;
   }
 
-  pill.classList.add('status-has-tooltip');
-  pill.tabIndex = 0;
-  pill.setAttribute('aria-label', `${status}. ${error}`);
-  pill.setAttribute('aria-describedby', 'status-tooltip-floating');
-  bindStatusTooltip(pill, error);
+  indicator.classList.add('status-has-tooltip');
+  indicator.tabIndex = 0;
+  indicator.setAttribute('aria-label', `${status}. ${error}`);
+  indicator.setAttribute('aria-describedby', 'status-tooltip-floating');
+  bindStatusTooltip(indicator, error);
 
   return wrap;
+}
+
+function createAutoStartIndicator(enabled: boolean): HTMLSpanElement {
+  const indicator = document.createElement('span');
+  indicator.className = `auto-start-indicator ${enabled ? 'auto-start-enabled' : 'auto-start-disabled'}`;
+  indicator.setAttribute('aria-label', enabled ? 'Auto Start enabled' : 'Auto Start disabled');
+  indicator.title = enabled ? 'Auto Start enabled' : 'Auto Start disabled';
+
+  indicator.innerHTML = enabled
+    ? `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12l4.2 4.2L19 6.8"></path>
+      </svg>
+    `
+    : `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6L6 18"></path>
+      </svg>
+    `;
+
+  return indicator;
 }
 
 function showStatusTooltip(anchor: HTMLElement, message: string): void {
@@ -713,7 +743,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
 
   const ruleCell = document.createElement('td');
   ruleCell.className = 'table-cell';
-  ruleCell.textContent = `Rule ${index + 1}`;
+  ruleCell.textContent = `#${index + 1}`;
 
   const localCell = document.createElement('td');
   localCell.className = 'table-cell';
@@ -724,8 +754,8 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   remoteCell.textContent = `${forward.remoteHost}:${forward.remotePort}`;
 
   const autoStartCell = document.createElement('td');
-  autoStartCell.className = 'table-cell';
-  autoStartCell.textContent = forward.autoStart ? 'Yes' : 'No';
+  autoStartCell.className = 'table-cell auto-start-cell';
+  autoStartCell.appendChild(createAutoStartIndicator(forward.autoStart));
 
   const statusCell = document.createElement('td');
   statusCell.className = 'table-cell';
