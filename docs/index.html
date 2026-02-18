@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSH Tunnel Manager</title>
+    <meta
+      name="description"
+      content="SSH Tunnel Manager is an Electron desktop app for managing grouped SSH hosts and forwarding rules, including jump host support."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <img class="hero-logo" src="./icon.png" alt="SSH Tunnel Manager icon" />
+        <h1>SSH Tunnel Manager</h1>
+        <p>
+          A desktop SSH tunnel manager built with Electron and TypeScript. Configure hosts, manage multiple
+          forwarding rules, and start/stop each rule independently.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/iyjian/ssh-tunnel-manager/releases">Download</a>
+          <a class="btn btn-secondary" href="https://github.com/iyjian/ssh-tunnel-manager">View on GitHub</a>
+        </div>
+      </header>
+
+      <section class="section">
+        <h2>Highlights</h2>
+        <ul class="grid">
+          <li>
+            <h3>Grouped Host Management</h3>
+            <p>Each SSH host can contain multiple forwarding rules with clear grouped visibility.</p>
+          </li>
+          <li>
+            <h3>Per-Rule Control</h3>
+            <p>Start, stop, and delete rules independently without affecting others under the same host.</p>
+          </li>
+          <li>
+            <h3>Flexible Authentication</h3>
+            <p>Use password or private key authentication (with optional passphrase).</p>
+          </li>
+          <li>
+            <h3>Jump Host Support</h3>
+            <p>Route connections through a bastion host when target hosts are not directly reachable.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section split">
+        <div>
+          <h2>Quick Start</h2>
+          <pre><code>pnpm install
+pnpm run start</code></pre>
+        </div>
+        <div>
+          <h2>Build</h2>
+          <pre><code>pnpm run package:mac
+pnpm run package:win</code></pre>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Open Source</h2>
+        <p>
+          Contributions are welcome. Please read the
+          <a href="https://github.com/iyjian/ssh-tunnel-manager/blob/main/CONTRIBUTING.md">contribution guide</a>
+          before opening pull requests.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

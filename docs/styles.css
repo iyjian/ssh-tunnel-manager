@@ -1,0 +1,155 @@
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f6f8fb;
+  --text: #111827;
+  --text-soft: #4b5563;
+  --border: #e5e7eb;
+  --primary: #111827;
+  --primary-hover: #374151;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.container {
+  width: min(960px, 92vw);
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.hero {
+  text-align: center;
+  padding: 20px 0 16px;
+}
+
+.hero-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+h1 {
+  margin: 14px 0 8px;
+  font-size: 2rem;
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: 1.35rem;
+}
+
+h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.hero p {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.section {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.grid li {
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  overflow-x: auto;
+}
+
+code {
+  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+}
+
+a {
+  color: inherit;
+}
+
+@media (max-width: 760px) {
+  .grid,
+  .split {
+    grid-template-columns: 1fr;
+  }
+}

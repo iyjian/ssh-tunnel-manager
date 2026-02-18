@@ -1,55 +1,114 @@
-# SSH Tunnel Manager (Electron + TypeScript)
+# SSH Tunnel Manager
 
-一个从零搭建的桌面 SSH 隧道管理器，支持按登录主机分组管理多条端口转发规则。
+[![Release](https://img.shields.io/github/v/release/iyjian/ssh-tunnel-manager?sort=semver)](https://github.com/iyjian/ssh-tunnel-manager/releases)
+[![License](https://img.shields.io/github/license/iyjian/ssh-tunnel-manager)](https://github.com/iyjian/ssh-tunnel-manager/blob/main/LICENSE)
+[![Pages](https://img.shields.io/github/deployments/iyjian/ssh-tunnel-manager/github-pages?label=pages)](https://iyjian.github.io/ssh-tunnel-manager/)
+[![Release Workflow](https://img.shields.io/github/actions/workflow/status/iyjian/ssh-tunnel-manager/release.yml?label=release)](https://github.com/iyjian/ssh-tunnel-manager/actions/workflows/release.yml)
 
-## 功能
+Desktop SSH tunnel manager built with Electron and TypeScript.
 
-- Electron GUI（TypeScript）
-- 隧道配置持久化存储（`userData/tunnels.json`）
-- 支持密码和私钥两种认证方式
-- 同一主机下可一次配置多条端口转发规则
-- 规则支持单独启动/停止/删除，主机支持分组编辑
-- 支持规则级自动连接（`autoStart`）
+- Group forwarding rules by SSH host
+- Start/stop each rule independently
+- Support password/private key auth
+- Support optional jump host (bastion)
 
-## 技术栈
+## Website
 
-- Electron
-- TypeScript
-- [ssh2](https://www.npmjs.com/package/ssh2)
+Project website (GitHub Pages):
 
-## 启动
+- [https://iyjian.github.io/ssh-tunnel-manager/](https://iyjian.github.io/ssh-tunnel-manager/)
+
+## Features
+
+- Host-based tunnel grouping with clear table sections
+- Multiple forwarding rules under one host
+- Per-rule lifecycle controls: start, stop, delete
+- Modal-based host editing/creation workflow
+- Auth methods:
+  - Password
+  - Private key + optional passphrase
+- Jump host support for target hosts in private networks
+- Private key import from local files (default directory `~/.ssh`)
+- Rule auto-start support (`autoStart`)
+
+## Quick Start
 
 ```bash
 pnpm install
 pnpm run start
 ```
 
-## 开发常用命令
+## Development
 
 ```bash
 pnpm run build
 pnpm run dev
 ```
 
-## 目录结构
+## Package Builds
+
+```bash
+pnpm run package:mac
+pnpm run package:win
+```
+
+Build artifacts are generated in `release/`.
+
+## CI/CD
+
+### Release pipeline
+
+Workflow: `.github/workflows/release.yml`
+
+- Triggered on push to `main` (or manual run)
+- Automatically bumps patch version
+- Tags release (`vX.Y.Z`)
+- Builds macOS and Windows artifacts
+- Publishes GitHub Release
+
+### GitHub Pages
+
+Workflow: `.github/workflows/pages.yml`
+
+- Deploys the `docs/` directory to GitHub Pages on push to `main`
+
+## Contributing
+
+Contributions are welcome.
+
+- Read [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Follow [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- Review [SECURITY.md](./SECURITY.md) for vulnerability reporting
+
+## Roadmap
+
+- Secret storage integration (Keychain/Credential Manager)
+- Multi-hop jump chain support
+- Rule templates and sharing
+- Better diagnostics and connection test tools
+
+## Project Structure
 
 ```text
 src/
   main/
-    main.ts          # Electron 主进程
-    preload.ts       # 安全 IPC 暴露
-    store.ts         # 隧道配置存储
-    tunnelManager.ts # SSH 隧道生命周期管理
+    main.ts          # Electron main process + IPC handlers
+    preload.ts       # Secure renderer API bridge
+    store.ts         # Tunnel configuration persistence
+    tunnelManager.ts # SSH tunnel runtime management
   renderer/
     index.html
     styles.css
-    renderer.ts      # UI 逻辑
+    renderer.ts      # UI behavior and rendering logic
   shared/
-    types.ts         # 主/渲染共享类型
+    types.ts         # Shared types between main and renderer
 ```
 
-## 注意事项
+## Security Notes
 
-- 这是本地开发版本，隧道敏感信息（如密码、私钥）会存储在本机 `userData/tunnels.json`。
-- 若你希望加强安全性，可进一步接入系统钥匙串（macOS Keychain、Windows Credential Manager）。
-- 目前默认监听方式为 `localHost:localPort -> sshHost -> remoteHost:remotePort`。
+SSH credentials are currently stored in local configuration (`userData/tunnels.json`).
+If you need stronger protection, integrate OS-native secret storage.
+
+## License
+
+MIT
