@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { HostDraft, TunnelApi, TunnelStatusChange } from '../shared/types';
+import type { ConfirmDialogOptions, HostDraft, TunnelApi, TunnelStatusChange } from '../shared/types';
 
 const api: TunnelApi = {
   listHosts: () => ipcRenderer.invoke('host:list'),
@@ -10,6 +10,7 @@ const api: TunnelApi = {
   startForward: (id: string) => ipcRenderer.invoke('forward:start', id),
   stopForward: (id: string) => ipcRenderer.invoke('forward:stop', id),
   importPrivateKey: () => ipcRenderer.invoke('auth:import-private-key'),
+  confirmAction: (options: ConfirmDialogOptions) => ipcRenderer.invoke('dialog:confirm', options),
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, change: TunnelStatusChange): void => {
       listener(change);

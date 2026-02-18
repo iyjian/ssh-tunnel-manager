@@ -66,6 +66,15 @@ export interface PrivateKeyImportResult {
   content: string;
 }
 
+export interface ConfirmDialogOptions {
+  title: string;
+  message: string;
+  detail?: string;
+  kind?: 'question' | 'warning';
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
 export interface TunnelApi {
   listHosts: () => Promise<HostView[]>;
   saveHost: (host: HostDraft) => Promise<HostView>;
@@ -74,5 +83,6 @@ export interface TunnelApi {
   startForward: (id: string) => Promise<void>;
   stopForward: (id: string) => Promise<void>;
   importPrivateKey: () => Promise<PrivateKeyImportResult | null>;
+  confirmAction: (options: ConfirmDialogOptions) => Promise<boolean>;
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => () => void;
 }

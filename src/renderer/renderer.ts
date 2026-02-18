@@ -358,12 +358,19 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
   deleteButton.className = smallDangerButtonClass;
   deleteButton.textContent = 'Delete Host';
   deleteButton.addEventListener('click', () => {
-    const ok = window.confirm(`Delete host "${host.name}" and all forwarding rules?`);
-    if (!ok) {
-      return;
-    }
-
     void runAction(async () => {
+      const ok = await window.tunnelApi.confirmAction({
+        title: 'Delete Host',
+        message: `Delete host "${host.name}"?`,
+        detail: 'All forwarding rules under this host will be deleted.',
+        kind: 'warning',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+      });
+      if (!ok) {
+        return;
+      }
+
       await window.tunnelApi.deleteHost(host.id);
       if (hostDialog.open && hostIdInput.value === host.id) {
         closeHostDialog();
@@ -464,12 +471,18 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   deleteButton.className = smallDangerButtonClass;
   deleteButton.textContent = 'Delete';
   deleteButton.addEventListener('click', () => {
-    const ok = window.confirm(`Delete Rule ${index + 1} under ${host.name}?`);
-    if (!ok) {
-      return;
-    }
-
     void runAction(async () => {
+      const ok = await window.tunnelApi.confirmAction({
+        title: 'Delete Rule',
+        message: `Delete Rule ${index + 1} under "${host.name}"?`,
+        kind: 'warning',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+      });
+      if (!ok) {
+        return;
+      }
+
       await window.tunnelApi.deleteForward(host.id, forward.id);
       setMessage(`Rule ${index + 1} deleted`, 'success');
       if (hostDialog.open && hostIdInput.value === host.id) {

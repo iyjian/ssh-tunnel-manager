@@ -4,10 +4,18 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { TunnelManager, type ForwardRuntimeConfig } from './tunnelManager';
 import { TunnelStore } from './store';
-import type { ForwardRule, ForwardRuleDraft, HostConfig, HostDraft, HostView } from '../shared/types';
+import type {
+  ConfirmDialogOptions,
+  ForwardRule,
+  ForwardRuleDraft,
+  HostConfig,
+  HostDraft,
+  HostView,
+} from '../shared/types';
 
 const manager = new TunnelManager();
 let store: TunnelStore | null = null;
+const APP_ICON_PATH = path.join(__dirname, '..', '..', 'assets', 'icon.png');
 
 const IPC_CHANNELS = {
   listHosts: 'host:list',
@@ -17,6 +25,7 @@ const IPC_CHANNELS = {
   startForward: 'forward:start',
   stopForward: 'forward:stop',
   importPrivateKey: 'auth:import-private-key',
+  confirmAction: 'dialog:confirm',
   status: 'forward:status',
 };
 
@@ -33,14 +42,12 @@ function getStore(): TunnelStore {
 }
 
 function createWindow(): BrowserWindow {
-  const iconPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
-
   const window = new BrowserWindow({
     width: 1080,
     height: 720,
     minWidth: 900,
     minHeight: 620,
-    icon: iconPath,
+    icon: APP_ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -53,14 +60,18 @@ function createWindow(): BrowserWindow {
   return window;
 }
 
+function getAppIconImage(): Electron.NativeImage | null {
+  const icon = nativeImage.createFromPath(APP_ICON_PATH);
+  return icon.isEmpty() ? null : icon;
+}
+
 function applyAppIcon(): void {
   if (process.platform !== 'darwin') {
     return;
   }
 
-  const iconPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
-  const icon = nativeImage.createFromPath(iconPath);
-  if (!icon.isEmpty()) {
+  const icon = getAppIconImage();
+  if (icon) {
     app.dock.setIcon(icon);
   }
 }
@@ -266,6 +277,27 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.stopForward, async (_event, id: string) => {
     await manager.stop(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.confirmAction, async (event, options: ConfirmDialogOptions) => {
+    const parentWindow = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+    const icon = getAppIconImage();
+    const messageBoxOptions = {
+      type: options.kind ?? 'question',
+      title: options.title,
+      message: options.message,
+      detail: options.detail,
+      buttons: [options.cancelLabel ?? 'Cancel', options.confirmLabel ?? 'Confirm'],
+      defaultId: 1,
+      cancelId: 0,
+      noLink: true,
+      ...(icon ? { icon } : {}),
+    };
+    const result = parentWindow
+      ? await dialog.showMessageBox(parentWindow, messageBoxOptions)
+      : await dialog.showMessageBox(messageBoxOptions);
+
+    return result.response === 1;
   });
 
   ipcMain.handle(IPC_CHANNELS.importPrivateKey, async () => {
