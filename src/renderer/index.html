@@ -10,8 +10,45 @@
     <main class="app-shell">
       <section class="card section">
         <div class="section-head">
+          <h2 class="section-title">Overview</h2>
+        </div>
+
+        <div class="overview-grid">
+          <div class="overview-card">
+            <p class="overview-label">Hosts</p>
+            <p id="stat-hosts" class="overview-value">0</p>
+          </div>
+          <div class="overview-card">
+            <p class="overview-label">Rules</p>
+            <p id="stat-rules" class="overview-value">0</p>
+          </div>
+          <div class="overview-card">
+            <p class="overview-label">Running</p>
+            <p id="stat-running" class="overview-value">0</p>
+          </div>
+          <div class="overview-card">
+            <p class="overview-label">Stopped</p>
+            <p id="stat-stopped" class="overview-value">0</p>
+          </div>
+          <div class="overview-card">
+            <p class="overview-label">Errors</p>
+            <p id="stat-errors" class="overview-value">0</p>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button id="qa-add-host-btn" type="button" class="btn btn-primary btn-sm">Add Host</button>
+          <button id="qa-add-jump-host-btn" type="button" class="btn btn-secondary btn-sm">Add Host via Jump</button>
+        </div>
+
+        <p id="overview-hint" class="overview-hint hidden">
+          No hosts yet. Start by creating your first host and forwarding rule.
+        </p>
+      </section>
+
+      <section class="card section">
+        <div class="section-head">
           <h2 class="section-title">Tunnel List (Grouped by SSH Host)</h2>
-          <button id="open-add-host-btn" type="button" class="btn btn-primary">Add Host</button>
         </div>
         <div class="table-wrap">
           <table>

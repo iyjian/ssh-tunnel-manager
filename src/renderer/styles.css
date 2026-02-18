@@ -153,6 +153,49 @@ textarea {
   gap: var(--space-3);
 }
 
+.overview-grid {
+  margin-top: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.overview-card {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  padding: var(--space-3);
+}
+
+.overview-label {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.overview-value {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.quick-actions {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.overview-hint {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-subtle);
+}
+
 .form-stack {
   margin-top: var(--space-4);
   display: grid;
@@ -616,6 +659,10 @@ td {
 @media (max-width: 900px) {
   .app-shell {
     padding: var(--space-4);
+  }
+
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .section-head {

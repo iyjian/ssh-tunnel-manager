@@ -24,7 +24,6 @@ function requireIn<T extends Element>(root: ParentNode, selector: string): T {
 
 const hostDialog = requireElement<HTMLDialogElement>('#host-dialog');
 const hostDialogTitle = requireElement<HTMLElement>('#host-dialog-title');
-const openAddHostButton = requireElement<HTMLButtonElement>('#open-add-host-btn');
 const closeHostDialogButton = requireElement<HTMLButtonElement>('#close-host-dialog-btn');
 const cancelHostDialogButton = requireElement<HTMLButtonElement>('#cancel-host-dialog-btn');
 const saveHostButton = requireElement<HTMLButtonElement>('#save-host-btn');
@@ -58,6 +57,14 @@ const importJumpPrivateKeyButton = requireElement<HTMLButtonElement>('#import-ju
 const forwardList = requireElement<HTMLDivElement>('#forward-list');
 const addForwardButton = requireElement<HTMLButtonElement>('#add-forward-btn');
 const tableBody = requireElement<HTMLTableSectionElement>('#tunnel-table-body');
+const statHostsElement = requireElement<HTMLElement>('#stat-hosts');
+const statRulesElement = requireElement<HTMLElement>('#stat-rules');
+const statRunningElement = requireElement<HTMLElement>('#stat-running');
+const statStoppedElement = requireElement<HTMLElement>('#stat-stopped');
+const statErrorsElement = requireElement<HTMLElement>('#stat-errors');
+const overviewHintElement = requireElement<HTMLElement>('#overview-hint');
+const qaAddHostButton = requireElement<HTMLButtonElement>('#qa-add-host-btn');
+const qaAddJumpHostButton = requireElement<HTMLButtonElement>('#qa-add-jump-host-btn');
 const resetButton = requireElement<HTMLButtonElement>('#reset-btn');
 const messageElement = requireElement<HTMLParagraphElement>('#message');
 
@@ -76,7 +83,8 @@ type ButtonIcon =
   | 'edit'
   | 'delete'
   | 'play'
-  | 'stop';
+  | 'stop'
+  | 'route';
 
 const BUTTON_ICON_SVG: Record<ButtonIcon, string> = {
   plus: `
@@ -138,6 +146,14 @@ const BUTTON_ICON_SVG: Record<ButtonIcon, string> = {
       <rect x="6" y="6" width="12" height="12"></rect>
     </svg>
   `,
+  route: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="6" r="2"></circle>
+      <circle cx="18" cy="18" r="2"></circle>
+      <path d="M8 6h4a4 4 0 0 1 4 4v4"></path>
+      <path d="M12 14h4"></path>
+    </svg>
+  `,
 };
 
 let hosts: HostView[] = [];
@@ -152,7 +168,8 @@ function iconOnly(icon: ButtonIcon): string {
 }
 
 function applyStaticButtonIcons(): void {
-  openAddHostButton.innerHTML = buttonLabel('plus', 'Add Host');
+  qaAddHostButton.innerHTML = buttonLabel('plus', 'Add Host');
+  qaAddJumpHostButton.innerHTML = buttonLabel('route', 'Add Host via Jump');
   closeHostDialogButton.innerHTML = iconOnly('close');
   importPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
   importJumpPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
@@ -209,6 +226,19 @@ function closeHostDialog(): void {
   if (hostDialog.open) {
     hostDialog.close();
   }
+}
+
+function openCreateHostDialog(options?: { withJumpHost?: boolean }): void {
+  openHostDialog('create');
+  if (!options?.withJumpHost) {
+    return;
+  }
+
+  useJumpHostInput.checked = true;
+  toggleJumpSection();
+  void Promise.resolve().then(() => {
+    jumpSshHostInput.focus();
+  });
 }
 
 function resetHostDialogState(): void {
@@ -722,6 +752,27 @@ function renderTable(): void {
   }
 }
 
+function renderOverview(): void {
+  const hostCount = hosts.length;
+  const rules = hosts.flatMap((host) => host.forwards);
+  const ruleCount = rules.length;
+  const runningCount = rules.filter((rule) => rule.status === 'running').length;
+  const stoppedCount = rules.filter((rule) => rule.status === 'stopped').length;
+  const errorCount = rules.filter((rule) => rule.status === 'error').length;
+
+  statHostsElement.textContent = String(hostCount);
+  statRulesElement.textContent = String(ruleCount);
+  statRunningElement.textContent = String(runningCount);
+  statStoppedElement.textContent = String(stoppedCount);
+  statErrorsElement.textContent = String(errorCount);
+
+  if (hostCount === 0) {
+    overviewHintElement.classList.remove('hidden');
+  } else {
+    overviewHintElement.classList.add('hidden');
+  }
+}
+
 function populateForm(host: HostView): void {
   hostIdInput.value = host.id;
   nameInput.value = host.name;
@@ -755,6 +806,7 @@ function populateForm(host: HostView): void {
 
 async function refreshHosts(): Promise<void> {
   hosts = await window.tunnelApi.listHosts();
+  renderOverview();
   renderTable();
 }
 
@@ -776,8 +828,12 @@ form.addEventListener('submit', (event) => {
   });
 });
 
-openAddHostButton.addEventListener('click', () => {
-  openHostDialog('create');
+qaAddHostButton.addEventListener('click', () => {
+  openCreateHostDialog();
+});
+
+qaAddJumpHostButton.addEventListener('click', () => {
+  openCreateHostDialog({ withJumpHost: true });
 });
 
 closeHostDialogButton.addEventListener('click', () => {
