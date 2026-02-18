@@ -287,7 +287,7 @@ function resetForm(): void {
   form.reset();
   hostIdInput.value = '';
   sshPortInput.value = '22';
-  authTypeSelect.value = 'password';
+  authTypeSelect.value = 'privateKey';
   passwordInput.value = '';
   privateKeyInput.value = '';
   passphraseInput.value = '';
