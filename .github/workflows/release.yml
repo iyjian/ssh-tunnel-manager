@@ -94,8 +94,6 @@ jobs:
           path: |
             release/*.dmg
             release/*.dmg.blockmap
-            release/*.zip
-            release/*.zip.blockmap
             release/*-mac.yml
 
   build_win:
@@ -199,8 +197,6 @@ jobs:
           files: |
             artifacts/mac-artifacts/*.dmg
             artifacts/mac-artifacts/*.dmg.blockmap
-            artifacts/mac-artifacts/*.zip
-            artifacts/mac-artifacts/*.zip.blockmap
             artifacts/mac-artifacts/*-mac.yml
             artifacts/win-artifacts/*.exe
             artifacts/win-artifacts/*.exe.blockmap
