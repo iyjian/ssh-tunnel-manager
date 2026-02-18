@@ -92,6 +92,70 @@
 
           <div class="subcard">
             <div class="subcard-head">
+              <h3 class="subcard-title">Jump Host (Optional)</h3>
+              <label class="forward-auto">
+                <input id="use-jump-host" type="checkbox" class="checkbox" />
+                Use Jump Host
+              </label>
+            </div>
+
+            <div id="jump-host-section" class="form-stack hidden">
+              <div class="form-row">
+                <label class="field field-host field-xs">
+                  Jump SSH Host
+                  <input id="jump-ssh-host" type="text" placeholder="bastion.example.com" class="input" />
+                </label>
+
+                <label class="field field-port field-xs">
+                  Jump SSH Port
+                  <input id="jump-ssh-port" type="number" min="1" max="65535" value="22" class="input" />
+                </label>
+
+                <label class="field field-user field-xs">
+                  Jump Username
+                  <input id="jump-username" type="text" class="input" />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label class="field field-auth field-xs">
+                  Jump Auth Type
+                  <select id="jump-auth-type" class="input">
+                    <option value="password">Password</option>
+                    <option value="privateKey">Private Key</option>
+                  </select>
+                </label>
+
+                <label id="jump-password-row" class="field field-password field-xs">
+                  Jump Password
+                  <input id="jump-password" type="password" class="input" />
+                </label>
+
+                <div id="jump-private-key-row" class="private-key-wrap hidden">
+                  <label class="field field-privatekey field-xs">
+                    Jump Private Key
+                    <textarea
+                      id="jump-private-key"
+                      rows="1"
+                      placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                      class="input"
+                    ></textarea>
+                  </label>
+                  <button id="import-jump-private-key-btn" type="button" class="btn btn-secondary btn-sm btn-nowrap">
+                    Import
+                  </button>
+                </div>
+
+                <label id="jump-passphrase-row" class="field field-passphrase field-xs hidden">
+                  Jump Passphrase (Optional)
+                  <input id="jump-passphrase" type="password" class="input" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="subcard">
+            <div class="subcard-head">
               <h3 class="subcard-title">Forwarding Rules</h3>
               <button id="add-forward-btn" type="button" class="btn btn-secondary btn-sm">Add Rule</button>
             </div>

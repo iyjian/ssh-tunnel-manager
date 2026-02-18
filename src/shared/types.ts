@@ -20,6 +20,16 @@ export interface ForwardRuleDraft {
   autoStart: boolean;
 }
 
+export interface JumpHostConfig {
+  sshHost: string;
+  sshPort: number;
+  username: string;
+  authType: TunnelAuthType;
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
+}
+
 export interface HostConfig {
   id: string;
   name: string;
@@ -30,6 +40,7 @@ export interface HostConfig {
   password?: string;
   privateKey?: string;
   passphrase?: string;
+  jumpHost?: JumpHostConfig;
   forwards: ForwardRule[];
 }
 
@@ -43,6 +54,7 @@ export interface HostDraft {
   password?: string;
   privateKey?: string;
   passphrase?: string;
+  jumpHost?: JumpHostConfig;
   forwards: ForwardRuleDraft[];
 }
 

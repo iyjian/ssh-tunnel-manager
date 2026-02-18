@@ -9,6 +9,7 @@ declare module 'ssh2' {
     password?: string;
     privateKey?: string | Buffer;
     passphrase?: string;
+    sock?: Duplex;
     keepaliveInterval?: number;
     keepaliveCountMax?: number;
     readyTimeout?: number;
@@ -26,6 +27,9 @@ declare module 'ssh2' {
     ): void;
     once(event: 'ready', listener: () => void): this;
     once(event: 'error', listener: (error: Error) => void): this;
+    once(event: 'close', listener: () => void): this;
+    on(event: 'ready', listener: () => void): this;
+    on(event: 'error', listener: (error: Error) => void): this;
     on(event: 'close', listener: () => void): this;
   }
 }

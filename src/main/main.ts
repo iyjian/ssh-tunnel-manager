@@ -11,6 +11,8 @@ import type {
   HostConfig,
   HostDraft,
   HostView,
+  JumpHostConfig,
+  TunnelAuthType,
 } from '../shared/types';
 
 const manager = new TunnelManager();
@@ -32,6 +34,16 @@ const IPC_CHANNELS = {
 interface DeleteForwardPayload {
   hostId: string;
   forwardId: string;
+}
+
+interface SshEndpointDraft {
+  sshHost: string;
+  sshPort: number | string;
+  username: string;
+  authType: TunnelAuthType;
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
 }
 
 function getStore(): TunnelStore {
@@ -103,10 +115,9 @@ function validateForwardDraft(input: ForwardRuleDraft): ForwardRule {
   return forward;
 }
 
-function validateHostDraft(input: HostDraft): HostConfig {
-  const host: HostConfig = {
-    id: input.id?.trim() || randomUUID(),
-    name: input.name.trim(),
+function validateSshEndpoint(input: SshEndpointDraft, scope: 'target' | 'jump'): JumpHostConfig {
+  const label = scope === 'target' ? 'Target' : 'Jump host';
+  const endpoint: JumpHostConfig = {
     sshHost: input.sshHost.trim(),
     sshPort: Number(input.sshPort),
     username: input.username.trim(),
@@ -114,36 +125,67 @@ function validateHostDraft(input: HostDraft): HostConfig {
     password: input.password,
     privateKey: input.privateKey,
     passphrase: input.passphrase,
+  };
+
+  if (!endpoint.sshHost) {
+    throw new Error(`${label} SSH host is required.`);
+  }
+  if (!endpoint.username) {
+    throw new Error(`${label} SSH username is required.`);
+  }
+  if (!Number.isInteger(endpoint.sshPort) || endpoint.sshPort < 1 || endpoint.sshPort > 65535) {
+    throw new Error(`${label} SSH port must be an integer in range 1-65535.`);
+  }
+
+  if (endpoint.authType === 'password') {
+    if (!endpoint.password) {
+      throw new Error(`${label} password is required for password authentication.`);
+    }
+    endpoint.privateKey = undefined;
+    endpoint.passphrase = undefined;
+  } else {
+    if (!endpoint.privateKey?.trim()) {
+      throw new Error(`${label} private key is required for private key authentication.`);
+    }
+    endpoint.password = undefined;
+  }
+
+  return endpoint;
+}
+
+function validateHostDraft(input: HostDraft): HostConfig {
+  const target = validateSshEndpoint(
+    {
+      sshHost: input.sshHost,
+      sshPort: input.sshPort,
+      username: input.username,
+      authType: input.authType,
+      password: input.password,
+      privateKey: input.privateKey,
+      passphrase: input.passphrase,
+    },
+    'target'
+  );
+
+  const host: HostConfig = {
+    id: input.id?.trim() || randomUUID(),
+    name: input.name.trim(),
+    sshHost: target.sshHost,
+    sshPort: target.sshPort,
+    username: target.username,
+    authType: target.authType,
+    password: target.password,
+    privateKey: target.privateKey,
+    passphrase: target.passphrase,
+    jumpHost: input.jumpHost ? validateSshEndpoint(input.jumpHost, 'jump') : undefined,
     forwards: (input.forwards ?? []).map((item) => validateForwardDraft(item)),
   };
 
   if (!host.name) {
     throw new Error('Host name is required.');
   }
-  if (!host.sshHost) {
-    throw new Error('SSH host is required.');
-  }
-  if (!host.username) {
-    throw new Error('SSH username is required.');
-  }
-  if (!Number.isInteger(host.sshPort) || host.sshPort < 1 || host.sshPort > 65535) {
-    throw new Error('SSH port must be an integer in range 1-65535.');
-  }
   if (host.forwards.length === 0) {
     throw new Error('At least one forwarding rule is required.');
-  }
-
-  if (host.authType === 'password') {
-    if (!host.password) {
-      throw new Error('Password is required for password authentication.');
-    }
-    host.privateKey = undefined;
-    host.passphrase = undefined;
-  } else {
-    if (!host.privateKey?.trim()) {
-      throw new Error('Private key is required for private key authentication.');
-    }
-    host.password = undefined;
   }
 
   return host;
@@ -159,6 +201,7 @@ function toRuntimeConfig(host: HostConfig, forward: ForwardRule): ForwardRuntime
     password: host.password,
     privateKey: host.privateKey,
     passphrase: host.passphrase,
+    jumpHost: host.jumpHost ? { ...host.jumpHost } : undefined,
     localHost: forward.localHost,
     localPort: forward.localPort,
     remoteHost: forward.remoteHost,

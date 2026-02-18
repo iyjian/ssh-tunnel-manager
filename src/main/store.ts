@@ -47,7 +47,7 @@ export class TunnelStore {
   }
 
   listHosts(): HostConfig[] {
-    return this.hosts.map((host) => ({ ...host, forwards: [...host.forwards] }));
+    return this.hosts.map((host) => this.cloneHost(host));
   }
 
   findHostById(id: string): HostConfig | undefined {
@@ -55,7 +55,7 @@ export class TunnelStore {
     if (!host) {
       return undefined;
     }
-    return { ...host, forwards: [...host.forwards] };
+    return this.cloneHost(host);
   }
 
   findForwardById(forwardId: string): ForwardLookup | undefined {
@@ -63,7 +63,7 @@ export class TunnelStore {
       const forward = host.forwards.find((item) => item.id === forwardId);
       if (forward) {
         return {
-          host: { ...host, forwards: [...host.forwards] },
+          host: this.cloneHost(host),
           forward: { ...forward },
         };
       }
@@ -121,6 +121,14 @@ export class TunnelStore {
     }
 
     return this.fromLegacy(data as LegacyTunnelConfig[]);
+  }
+
+  private cloneHost(host: HostConfig): HostConfig {
+    return {
+      ...host,
+      jumpHost: host.jumpHost ? { ...host.jumpHost } : undefined,
+      forwards: host.forwards.map((forward) => ({ ...forward })),
+    };
   }
 
   private fromLegacy(legacyTunnels: LegacyTunnelConfig[]): HostConfig[] {

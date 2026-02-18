@@ -1,4 +1,10 @@
-import type { ForwardRuleDraft, HostDraft, HostView, TunnelAuthType } from '../shared/types';
+import type {
+  ForwardRuleDraft,
+  HostDraft,
+  HostView,
+  JumpHostConfig,
+  TunnelAuthType,
+} from '../shared/types';
 
 function requireElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -36,6 +42,19 @@ const passwordRow = requireElement<HTMLElement>('#password-row');
 const privateKeyRow = requireElement<HTMLElement>('#private-key-row');
 const passphraseRow = requireElement<HTMLElement>('#passphrase-row');
 const importPrivateKeyButton = requireElement<HTMLButtonElement>('#import-private-key-btn');
+const useJumpHostInput = requireElement<HTMLInputElement>('#use-jump-host');
+const jumpHostSection = requireElement<HTMLElement>('#jump-host-section');
+const jumpSshHostInput = requireElement<HTMLInputElement>('#jump-ssh-host');
+const jumpSshPortInput = requireElement<HTMLInputElement>('#jump-ssh-port');
+const jumpUsernameInput = requireElement<HTMLInputElement>('#jump-username');
+const jumpAuthTypeSelect = requireElement<HTMLSelectElement>('#jump-auth-type');
+const jumpPasswordInput = requireElement<HTMLInputElement>('#jump-password');
+const jumpPrivateKeyInput = requireElement<HTMLTextAreaElement>('#jump-private-key');
+const jumpPassphraseInput = requireElement<HTMLInputElement>('#jump-passphrase');
+const jumpPasswordRow = requireElement<HTMLElement>('#jump-password-row');
+const jumpPrivateKeyRow = requireElement<HTMLElement>('#jump-private-key-row');
+const jumpPassphraseRow = requireElement<HTMLElement>('#jump-passphrase-row');
+const importJumpPrivateKeyButton = requireElement<HTMLButtonElement>('#import-jump-private-key-btn');
 const forwardList = requireElement<HTMLDivElement>('#forward-list');
 const addForwardButton = requireElement<HTMLButtonElement>('#add-forward-btn');
 const tableBody = requireElement<HTMLTableSectionElement>('#tunnel-table-body');
@@ -121,6 +140,30 @@ function toggleAuthFields(): void {
     privateKeyRow.classList.remove('hidden');
     passphraseRow.classList.remove('hidden');
   }
+}
+
+function toggleJumpAuthFields(): void {
+  const authType = jumpAuthTypeSelect.value as TunnelAuthType;
+
+  if (authType === 'password') {
+    jumpPasswordRow.classList.remove('hidden');
+    jumpPrivateKeyRow.classList.add('hidden');
+    jumpPassphraseRow.classList.add('hidden');
+  } else {
+    jumpPasswordRow.classList.add('hidden');
+    jumpPrivateKeyRow.classList.remove('hidden');
+    jumpPassphraseRow.classList.remove('hidden');
+  }
+}
+
+function toggleJumpSection(): void {
+  if (!useJumpHostInput.checked) {
+    jumpHostSection.classList.add('hidden');
+    return;
+  }
+
+  jumpHostSection.classList.remove('hidden');
+  toggleJumpAuthFields();
 }
 
 function parsePort(value: string, label: string): number {
@@ -246,6 +289,45 @@ function collectForwardsFromForm(): ForwardRuleDraft[] {
   });
 }
 
+function collectJumpHostDraft(): JumpHostConfig | undefined {
+  if (!useJumpHostInput.checked) {
+    return undefined;
+  }
+
+  const authType = jumpAuthTypeSelect.value as TunnelAuthType;
+  const jumpHost: JumpHostConfig = {
+    sshHost: jumpSshHostInput.value.trim(),
+    sshPort: parsePort(jumpSshPortInput.value, 'Jump SSH Port'),
+    username: jumpUsernameInput.value.trim(),
+    authType,
+    password: jumpPasswordInput.value,
+    privateKey: jumpPrivateKeyInput.value,
+    passphrase: jumpPassphraseInput.value,
+  };
+
+  if (!jumpHost.sshHost) {
+    throw new Error('Jump SSH Host is required');
+  }
+  if (!jumpHost.username) {
+    throw new Error('Jump Username is required');
+  }
+
+  if (authType === 'password') {
+    if (!jumpHost.password) {
+      throw new Error('Jump Password is required for password auth');
+    }
+    jumpHost.privateKey = undefined;
+    jumpHost.passphrase = undefined;
+  } else {
+    if (!(jumpHost.privateKey ?? '').trim()) {
+      throw new Error('Jump Private Key is required for private key auth');
+    }
+    jumpHost.password = undefined;
+  }
+
+  return jumpHost;
+}
+
 function collectDraftFromForm(): HostDraft {
   const authType = authTypeSelect.value as TunnelAuthType;
 
@@ -259,6 +341,7 @@ function collectDraftFromForm(): HostDraft {
     password: passwordInput.value,
     privateKey: privateKeyInput.value,
     passphrase: passphraseInput.value,
+    jumpHost: collectJumpHostDraft(),
     forwards: collectForwardsFromForm(),
   };
 
@@ -291,9 +374,18 @@ function resetForm(): void {
   passwordInput.value = '';
   privateKeyInput.value = '';
   passphraseInput.value = '';
+  useJumpHostInput.checked = false;
+  jumpSshHostInput.value = '';
+  jumpSshPortInput.value = '22';
+  jumpUsernameInput.value = '';
+  jumpAuthTypeSelect.value = 'privateKey';
+  jumpPasswordInput.value = '';
+  jumpPrivateKeyInput.value = '';
+  jumpPassphraseInput.value = '';
   forwardList.innerHTML = '';
   createForwardRow();
   toggleAuthFields();
+  toggleJumpSection();
 }
 
 function createStatusPill(status: string, error?: string): HTMLSpanElement {
@@ -336,9 +428,12 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
 
   const desc = document.createElement('div');
   desc.className = 'group-desc';
+  const jumpText = host.jumpHost
+    ? ` · via ${host.jumpHost.username}@${host.jumpHost.sshHost}:${host.jumpHost.sshPort}`
+    : '';
   desc.textContent = `${host.username}@${host.sshHost}:${host.sshPort} · ${
     host.authType === 'password' ? 'Password' : 'Private Key'
-  }`;
+  }${jumpText}`;
 
   meta.append(title, desc);
 
@@ -545,6 +640,14 @@ function populateForm(host: HostView): void {
   passwordInput.value = host.password ?? '';
   privateKeyInput.value = host.privateKey ?? '';
   passphraseInput.value = host.passphrase ?? '';
+  useJumpHostInput.checked = Boolean(host.jumpHost);
+  jumpSshHostInput.value = host.jumpHost?.sshHost ?? '';
+  jumpSshPortInput.value = host.jumpHost?.sshPort ? String(host.jumpHost.sshPort) : '22';
+  jumpUsernameInput.value = host.jumpHost?.username ?? '';
+  jumpAuthTypeSelect.value = host.jumpHost?.authType ?? 'privateKey';
+  jumpPasswordInput.value = host.jumpHost?.password ?? '';
+  jumpPrivateKeyInput.value = host.jumpHost?.privateKey ?? '';
+  jumpPassphraseInput.value = host.jumpHost?.passphrase ?? '';
 
   forwardList.innerHTML = '';
   for (const forward of host.forwards) {
@@ -555,6 +658,7 @@ function populateForm(host: HostView): void {
   }
 
   toggleAuthFields();
+  toggleJumpSection();
 }
 
 async function refreshHosts(): Promise<void> {
@@ -596,6 +700,14 @@ authTypeSelect.addEventListener('change', () => {
   toggleAuthFields();
 });
 
+useJumpHostInput.addEventListener('change', () => {
+  toggleJumpSection();
+});
+
+jumpAuthTypeSelect.addEventListener('change', () => {
+  toggleJumpAuthFields();
+});
+
 addForwardButton.addEventListener('click', () => {
   createForwardRow();
 });
@@ -609,6 +721,18 @@ importPrivateKeyButton.addEventListener('click', () => {
 
     privateKeyInput.value = result.content;
     setMessage(`Imported private key file: ${getFileName(result.path)}`, 'success');
+  });
+});
+
+importJumpPrivateKeyButton.addEventListener('click', () => {
+  void runAction(async () => {
+    const result = await window.tunnelApi.importPrivateKey();
+    if (!result) {
+      return;
+    }
+
+    jumpPrivateKeyInput.value = result.content;
+    setMessage(`Imported jump private key file: ${getFileName(result.path)}`, 'success');
   });
 });
 
