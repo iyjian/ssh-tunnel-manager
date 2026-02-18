@@ -67,8 +67,99 @@ const smallPrimaryButtonClass = 'btn btn-primary btn-sm';
 const smallSecondaryButtonClass = 'btn btn-secondary btn-sm';
 const smallDangerButtonClass = 'btn btn-danger btn-sm';
 
+type ButtonIcon =
+  | 'plus'
+  | 'save'
+  | 'refresh'
+  | 'close'
+  | 'upload'
+  | 'edit'
+  | 'delete'
+  | 'play'
+  | 'stop';
+
+const BUTTON_ICON_SVG: Record<ButtonIcon, string> = {
+  plus: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14"></path>
+      <path d="M5 12h14"></path>
+    </svg>
+  `,
+  save: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 4h11l3 3v13H4V4z"></path>
+      <path d="M8 4v5h8V4"></path>
+      <path d="M8 20v-6h8v6"></path>
+    </svg>
+  `,
+  refresh: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 11a8 8 0 0 0-14.85-4"></path>
+      <path d="M4 4v4h4"></path>
+      <path d="M4 13a8 8 0 0 0 14.85 4"></path>
+      <path d="M20 20v-4h-4"></path>
+    </svg>
+  `,
+  close: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 6L6 18"></path>
+      <path d="M6 6l12 12"></path>
+    </svg>
+  `,
+  upload: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 15V5"></path>
+      <path d="M9 8l3-3l3 3"></path>
+      <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+    </svg>
+  `,
+  edit: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 20l4-1l8-8a2 2 0 0 0-4-4l-8 8l-1 4"></path>
+      <path d="M14 7l4 4"></path>
+    </svg>
+  `,
+  delete: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"></path>
+      <path d="M9 7V4h6v3"></path>
+    </svg>
+  `,
+  play: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 5v14l11-7z"></path>
+    </svg>
+  `,
+  stop: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="6" width="12" height="12"></rect>
+    </svg>
+  `,
+};
+
 let hosts: HostView[] = [];
 let hostDialogMode: 'create' | 'edit' = 'create';
+
+function buttonLabel(icon: ButtonIcon, text: string): string {
+  return `<span class="btn-icon" aria-hidden="true">${BUTTON_ICON_SVG[icon]}</span><span>${text}</span>`;
+}
+
+function iconOnly(icon: ButtonIcon): string {
+  return `<span class="btn-icon" aria-hidden="true">${BUTTON_ICON_SVG[icon]}</span>`;
+}
+
+function applyStaticButtonIcons(): void {
+  openAddHostButton.innerHTML = buttonLabel('plus', 'Add Host');
+  closeHostDialogButton.innerHTML = iconOnly('close');
+  importPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
+  importJumpPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
+  addForwardButton.innerHTML = buttonLabel('plus', 'Add Rule');
+  resetButton.innerHTML = buttonLabel('refresh', 'Reset');
+  cancelHostDialogButton.innerHTML = buttonLabel('close', 'Cancel');
+}
 
 function setMessage(text: string, level: 'default' | 'success' | 'error' = 'default'): void {
   messageElement.textContent = text;
@@ -92,7 +183,7 @@ function openHostDialog(mode: 'create' | 'edit', host?: HostView): void {
 
   if (mode === 'create') {
     hostDialogTitle.textContent = 'Add Host';
-    saveHostButton.textContent = 'Save Host';
+    saveHostButton.innerHTML = buttonLabel('save', 'Save Host');
     resetForm();
     setMessage('');
   } else {
@@ -100,7 +191,7 @@ function openHostDialog(mode: 'create' | 'edit', host?: HostView): void {
       throw new Error('Missing host data for edit mode.');
     }
     hostDialogTitle.textContent = 'Edit Host';
-    saveHostButton.textContent = 'Save Changes';
+    saveHostButton.innerHTML = buttonLabel('save', 'Save Changes');
     populateForm(host);
     setMessage('');
   }
@@ -123,7 +214,7 @@ function closeHostDialog(): void {
 function resetHostDialogState(): void {
   hostDialogMode = 'create';
   hostDialogTitle.textContent = 'Add Host';
-  saveHostButton.textContent = 'Save Host';
+  saveHostButton.innerHTML = buttonLabel('save', 'Save Host');
   resetForm();
   setMessage('');
 }
@@ -231,6 +322,7 @@ function createForwardRow(initial?: Partial<ForwardRuleDraft>): void {
   const remotePortInput = requireIn<HTMLInputElement>(row, '.forward-input-remote-port');
   const autoStartInput = requireIn<HTMLInputElement>(row, '.forward-input-auto-start');
   const removeButton = requireIn<HTMLButtonElement>(row, '.forward-remove');
+  removeButton.innerHTML = buttonLabel('delete', 'Delete Rule');
 
   localHostInput.value = initial?.localHost ?? '127.0.0.1';
   localPortInput.value =
@@ -443,7 +535,7 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
   const editButton = document.createElement('button');
   editButton.type = 'button';
   editButton.className = smallSecondaryButtonClass;
-  editButton.textContent = 'Edit Host';
+  editButton.innerHTML = buttonLabel('edit', 'Edit Host');
   editButton.addEventListener('click', () => {
     openHostDialog('edit', host);
   });
@@ -451,7 +543,7 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
   deleteButton.className = smallDangerButtonClass;
-  deleteButton.textContent = 'Delete Host';
+  deleteButton.innerHTML = buttonLabel('delete', 'Delete Host');
   deleteButton.addEventListener('click', () => {
     void runAction(async () => {
       const ok = await window.tunnelApi.confirmAction({
@@ -540,7 +632,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   const startButton = document.createElement('button');
   startButton.type = 'button';
   startButton.className = smallPrimaryButtonClass;
-  startButton.textContent = 'Start';
+  startButton.innerHTML = buttonLabel('play', 'Start');
   startButton.disabled = forward.status === 'running' || forward.status === 'starting';
   startButton.addEventListener('click', () => {
     void runAction(async () => {
@@ -552,7 +644,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   const stopButton = document.createElement('button');
   stopButton.type = 'button';
   stopButton.className = smallSecondaryButtonClass;
-  stopButton.textContent = 'Stop';
+  stopButton.innerHTML = buttonLabel('stop', 'Stop');
   stopButton.disabled = forward.status === 'stopped' || forward.status === 'stopping';
   stopButton.addEventListener('click', () => {
     void runAction(async () => {
@@ -564,7 +656,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
   deleteButton.className = smallDangerButtonClass;
-  deleteButton.textContent = 'Delete';
+  deleteButton.innerHTML = buttonLabel('delete', 'Delete');
   deleteButton.addEventListener('click', () => {
     void runAction(async () => {
       const ok = await window.tunnelApi.confirmAction({
@@ -769,5 +861,6 @@ window.addEventListener('beforeunload', () => {
   unsubscribe();
 });
 
+applyStaticButtonIcons();
 resetHostDialogState();
 void refreshHosts();
