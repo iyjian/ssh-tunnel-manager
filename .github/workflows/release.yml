@@ -86,6 +86,33 @@ jobs:
       - name: Build mac package
         run: pnpm run package:mac
 
+      - name: Verify packaged runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -type d -name 'SSH Tunnel Manager.app' | head -n 1)"
+          if [ -z "${APP_PATH}" ]; then
+            echo "Packaged .app bundle not found under release/"
+            exit 1
+          fi
+
+          APP_BIN="${APP_PATH}/Contents/MacOS/SSH Tunnel Manager"
+          APP_MAIN="${APP_PATH}/Contents/Resources/app.asar/dist/main/main.js"
+          ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
+            const createRequire = require("node:module").createRequire;
+            const req = createRequire(process.argv[1]);
+            for (const mod of ["ssh2", "asn1", "bcrypt-pbkdf"]) {
+              try {
+                req(mod);
+                console.log("ok", mod);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                console.error("missing", mod, message);
+                process.exit(1);
+              }
+            }
+          ' "${APP_MAIN}"
+
       - name: Upload mac artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -129,6 +156,33 @@ jobs:
           pnpm run build
           pnpm exec electron-builder --win nsis --publish never
 
+      - name: Verify packaged runtime dependencies
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path release -Recurse -Filter "SSH Tunnel Manager.exe" |
+            Where-Object { $_.FullName -like "*win-unpacked*" } |
+            Select-Object -First 1
+          if (-not $exe) {
+            throw "Packaged Windows executable not found under release/win-unpacked"
+          }
+
+          $appMain = Join-Path $exe.Directory.FullName "resources\\app.asar\\dist\\main\\main.js"
+          $env:ELECTRON_RUN_AS_NODE = "1"
+          & $exe.FullName -e "
+            const createRequire = require('node:module').createRequire;
+            const req = createRequire(process.argv[1]);
+            for (const mod of ['ssh2', 'asn1', 'bcrypt-pbkdf']) {
+              try {
+                req(mod);
+                console.log('ok', mod);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                console.error('missing', mod, message);
+                process.exit(1);
+              }
+            }
+          " $appMain
+
       - name: Upload windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -162,6 +216,41 @@ jobs:
 
       - name: Build linux package (amd64)
         run: pnpm run package:linux
+
+      - name: Verify packaged runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="$(find release -type d -name 'linux-unpacked' | head -n 1)"
+          if [ -z "${APP_DIR}" ]; then
+            echo "linux-unpacked not found under release/"
+            exit 1
+          fi
+
+          APP_BIN="$(find "${APP_DIR}" -maxdepth 1 -type f -perm -111 | grep -E '/(SSH Tunnel Manager|ssh-tunnel-manager)$' | head -n 1)"
+          if [ -z "${APP_BIN}" ]; then
+            APP_BIN="$(find "${APP_DIR}" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          fi
+          if [ -z "${APP_BIN}" ]; then
+            echo "Packaged Linux executable not found under ${APP_DIR}"
+            exit 1
+          fi
+
+          APP_MAIN="${APP_DIR}/resources/app.asar/dist/main/main.js"
+          ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
+            const createRequire = require("node:module").createRequire;
+            const req = createRequire(process.argv[1]);
+            for (const mod of ["ssh2", "asn1", "bcrypt-pbkdf"]) {
+              try {
+                req(mod);
+                console.log("ok", mod);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                console.error("missing", mod, message);
+                process.exit(1);
+              }
+            }
+          ' "${APP_MAIN}"
 
       - name: Upload linux artifacts
         uses: actions/upload-artifact@v4
