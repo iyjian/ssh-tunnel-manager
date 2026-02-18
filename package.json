@@ -5,11 +5,11 @@
   "main": "dist/main/main.js",
   "packageManager": "pnpm@9.1.2",
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "pnpm run clean && pnpm run build:main && pnpm run build:renderer && pnpm run copy:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "tsc -p tsconfig.renderer.json",
-    "copy:renderer": "cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/styles.css dist/renderer/styles.css",
+    "copy:renderer": "node -e \"const fs=require('fs');fs.mkdirSync('dist/renderer',{recursive:true});fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html');fs.copyFileSync('src/renderer/styles.css','dist/renderer/styles.css');\"",
     "start": "pnpm run build && electron .",
     "dev": "pnpm run build && electron .",
     "package:mac": "pnpm run build && electron-builder --mac dmg --publish never",
