@@ -441,6 +441,18 @@ thead {
   background: var(--color-bg-subtle);
 }
 
+.host-rules-head {
+  background: var(--color-bg-subtle);
+}
+
+.host-rules-head th {
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
 th {
   padding: 10px 12px;
   text-align: left;

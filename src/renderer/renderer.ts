@@ -380,6 +380,31 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
   return row;
 }
 
+function renderRulesHeaderRow(): HTMLTableRowElement {
+  const row = document.createElement('tr');
+  row.className = 'host-rules-head';
+
+  const labels = ['Rule', 'Local', 'Remote', 'Auto Start', 'Status', 'Actions'];
+  for (const label of labels) {
+    const cell = document.createElement('th');
+    cell.scope = 'col';
+    cell.textContent = label;
+    row.appendChild(cell);
+  }
+
+  return row;
+}
+
+function renderHostEmptyRulesRow(): HTMLTableRowElement {
+  const row = document.createElement('tr');
+  const cell = document.createElement('td');
+  cell.colSpan = 6;
+  cell.className = 'table-empty';
+  cell.textContent = 'No rules for this host';
+  row.appendChild(cell);
+  return row;
+}
+
 function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
   const forward = host.forwards[index];
   const row = document.createElement('tr');
@@ -484,6 +509,12 @@ function renderTable(): void {
 
   for (const host of hosts) {
     tableBody.appendChild(renderGroupRow(host));
+    tableBody.appendChild(renderRulesHeaderRow());
+
+    if (host.forwards.length === 0) {
+      tableBody.appendChild(renderHostEmptyRulesRow());
+      continue;
+    }
 
     for (let index = 0; index < host.forwards.length; index += 1) {
       tableBody.appendChild(renderForwardRow(host, index));
