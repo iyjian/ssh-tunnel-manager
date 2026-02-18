@@ -510,6 +510,11 @@ td {
   font-size: var(--font-size-sm);
 }
 
+.host-rules-head th:nth-child(5),
+.data-row td:nth-child(5) {
+  width: 112px;
+}
+
 .table-empty {
   text-align: center;
   color: var(--color-text-tertiary);
@@ -519,10 +524,13 @@ td {
 .status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 80px;
   border-radius: var(--radius-xs);
   padding: 2px 8px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
+  white-space: nowrap;
 }
 
 .status-running {
