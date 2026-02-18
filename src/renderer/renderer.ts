@@ -16,6 +16,12 @@ function requireIn<T extends Element>(root: ParentNode, selector: string): T {
   return element;
 }
 
+const hostDialog = requireElement<HTMLDialogElement>('#host-dialog');
+const hostDialogTitle = requireElement<HTMLElement>('#host-dialog-title');
+const openAddHostButton = requireElement<HTMLButtonElement>('#open-add-host-btn');
+const closeHostDialogButton = requireElement<HTMLButtonElement>('#close-host-dialog-btn');
+const cancelHostDialogButton = requireElement<HTMLButtonElement>('#cancel-host-dialog-btn');
+const saveHostButton = requireElement<HTMLButtonElement>('#save-host-btn');
 const form = requireElement<HTMLFormElement>('#tunnel-form');
 const hostIdInput = requireElement<HTMLInputElement>('#host-id');
 const nameInput = requireElement<HTMLInputElement>('#name');
@@ -43,6 +49,7 @@ const smallSecondaryButtonClass = 'btn btn-secondary btn-sm';
 const smallDangerButtonClass = 'btn btn-danger btn-sm';
 
 let hosts: HostView[] = [];
+let hostDialogMode: 'create' | 'edit' = 'create';
 
 function setMessage(text: string, level: 'default' | 'success' | 'error' = 'default'): void {
   messageElement.textContent = text;
@@ -59,6 +66,47 @@ function setMessage(text: string, level: 'default' | 'success' | 'error' = 'defa
   }
 
   messageElement.classList.add('message-default');
+}
+
+function openHostDialog(mode: 'create' | 'edit', host?: HostView): void {
+  hostDialogMode = mode;
+
+  if (mode === 'create') {
+    hostDialogTitle.textContent = 'Add Host';
+    saveHostButton.textContent = 'Save Host';
+    resetForm();
+    setMessage('');
+  } else {
+    if (!host) {
+      throw new Error('Missing host data for edit mode.');
+    }
+    hostDialogTitle.textContent = 'Edit Host';
+    saveHostButton.textContent = 'Save Changes';
+    populateForm(host);
+    setMessage('');
+  }
+
+  if (!hostDialog.open) {
+    hostDialog.showModal();
+  }
+
+  void Promise.resolve().then(() => {
+    nameInput.focus();
+  });
+}
+
+function closeHostDialog(): void {
+  if (hostDialog.open) {
+    hostDialog.close();
+  }
+}
+
+function resetHostDialogState(): void {
+  hostDialogMode = 'create';
+  hostDialogTitle.textContent = 'Add Host';
+  saveHostButton.textContent = 'Save Host';
+  resetForm();
+  setMessage('');
 }
 
 function toggleAuthFields(): void {
@@ -302,8 +350,7 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
   editButton.className = smallSecondaryButtonClass;
   editButton.textContent = 'Edit Host';
   editButton.addEventListener('click', () => {
-    populateForm(host);
-    setMessage(`Editing host: ${host.name}`);
+    openHostDialog('edit', host);
   });
 
   const deleteButton = document.createElement('button');
@@ -318,8 +365,8 @@ function renderGroupRow(host: HostView): HTMLTableRowElement {
 
     void runAction(async () => {
       await window.tunnelApi.deleteHost(host.id);
-      if (hostIdInput.value === host.id) {
-        resetForm();
+      if (hostDialog.open && hostIdInput.value === host.id) {
+        closeHostDialog();
       }
       setMessage(`Host ${host.name} deleted`, 'success');
     });
@@ -400,7 +447,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
     void runAction(async () => {
       await window.tunnelApi.deleteForward(host.id, forward.id);
       setMessage(`Rule ${index + 1} deleted`, 'success');
-      if (hostIdInput.value === host.id) {
+      if (hostDialog.open && hostIdInput.value === host.id) {
         const latest = await window.tunnelApi.listHosts();
         const latestHost = latest.find((item) => item.id === host.id);
         if (latestHost) {
@@ -484,10 +531,21 @@ form.addEventListener('submit', (event) => {
   event.preventDefault();
   void runAction(async () => {
     const draft = collectDraftFromForm();
-    const host = await window.tunnelApi.saveHost(draft);
-    setMessage(`Host ${host.name} saved`, 'success');
-    resetForm();
+    await window.tunnelApi.saveHost(draft);
+    closeHostDialog();
   });
+});
+
+openAddHostButton.addEventListener('click', () => {
+  openHostDialog('create');
+});
+
+closeHostDialogButton.addEventListener('click', () => {
+  closeHostDialog();
+});
+
+cancelHostDialogButton.addEventListener('click', () => {
+  closeHostDialog();
 });
 
 authTypeSelect.addEventListener('change', () => {
@@ -511,8 +569,28 @@ importPrivateKeyButton.addEventListener('click', () => {
 });
 
 resetButton.addEventListener('click', () => {
+  if (hostDialogMode === 'edit') {
+    const currentHostId = hostIdInput.value.trim();
+    const currentHost = hosts.find((item) => item.id === currentHostId);
+    if (currentHost) {
+      populateForm(currentHost);
+      setMessage('Reverted to saved host values');
+      return;
+    }
+  }
+
   resetForm();
   setMessage('Form reset');
+});
+
+hostDialog.addEventListener('click', (event) => {
+  if (event.target === hostDialog) {
+    closeHostDialog();
+  }
+});
+
+hostDialog.addEventListener('close', () => {
+  resetHostDialogState();
 });
 
 const unsubscribe = window.tunnelApi.onStatusChanged(() => {
@@ -523,5 +601,5 @@ window.addEventListener('beforeunload', () => {
   unsubscribe();
 });
 
-resetForm();
+resetHostDialogState();
 void refreshHosts();

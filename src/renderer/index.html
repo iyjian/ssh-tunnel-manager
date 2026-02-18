@@ -8,13 +8,36 @@
   </head>
   <body>
     <main class="app-shell">
-      <header class="page-head">
-        <h1 class="page-title">SSH Tunnel Manager</h1>
-        <p class="page-subtitle">Manage multiple port-forwarding rules grouped by SSH login host</p>
-      </header>
-
       <section class="card section">
-        <h2 class="section-title">Host Configuration</h2>
+        <div class="section-head">
+          <h2 class="section-title">Tunnel List (Grouped by SSH Host)</h2>
+          <button id="open-add-host-btn" type="button" class="btn btn-primary">Add Host</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Local</th>
+                <th>Remote</th>
+                <th>Auto Start</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tunnel-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="host-dialog" class="host-dialog">
+      <div class="dialog-panel">
+        <div class="dialog-head">
+          <h2 id="host-dialog-title" class="section-title">Add Host</h2>
+          <button id="close-host-dialog-btn" type="button" class="icon-btn" aria-label="Close">×</button>
+        </div>
+
         <form id="tunnel-form" class="form-stack">
           <input type="hidden" id="host-id" />
 
@@ -86,33 +109,15 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save Host</button>
+            <button id="save-host-btn" type="submit" class="btn btn-primary">Save Host</button>
             <button id="reset-btn" type="button" class="btn btn-secondary">Reset</button>
+            <button id="cancel-host-dialog-btn" type="button" class="btn btn-secondary">Cancel</button>
           </div>
         </form>
 
         <p id="message" class="message message-default"></p>
-      </section>
-
-      <section class="card section">
-        <h2 class="section-title">Tunnel List (Grouped by SSH Host)</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Rule</th>
-                <th>Local</th>
-                <th>Remote</th>
-                <th>Auto Start</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tunnel-table-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+      </div>
+    </dialog>
 
     <script type="module" src="./renderer.js"></script>
   </body>

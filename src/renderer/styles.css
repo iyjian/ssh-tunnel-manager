@@ -108,6 +108,13 @@ body {
   font-weight: var(--font-weight-semibold);
 }
 
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .form-stack {
   margin-top: var(--space-4);
   display: grid;
@@ -271,6 +278,57 @@ textarea.input {
 
 .btn-nowrap {
   white-space: nowrap;
+}
+
+.host-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.host-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.dialog-panel {
+  width: 100%;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  padding: var(--space-5);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-subtle);
+}
+
+.host-dialog .form-stack {
+  margin-top: 0;
 }
 
 .subcard {
@@ -481,6 +539,20 @@ td {
 
 @media (max-width: 900px) {
   .app-shell {
+    padding: var(--space-4);
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+  }
+
+  .host-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .dialog-panel {
+    max-height: calc(100vh - 16px);
     padding: var(--space-4);
   }
 
