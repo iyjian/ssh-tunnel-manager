@@ -632,6 +632,32 @@ td {
   white-space: nowrap;
 }
 
+.status-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-has-tooltip {
+  cursor: help;
+}
+
+.status-tooltip-floating {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  width: min(360px, calc(100vw - 48px));
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  text-wrap: pretty;
+}
+
 .status-running {
   background: var(--color-success-bg);
   color: var(--color-success-500);

@@ -158,6 +158,10 @@ const BUTTON_ICON_SVG: Record<ButtonIcon, string> = {
 
 let hosts: HostView[] = [];
 let hostDialogMode: 'create' | 'edit' = 'create';
+const floatingStatusTooltip = document.createElement('div');
+floatingStatusTooltip.id = 'status-tooltip-floating';
+floatingStatusTooltip.className = 'status-tooltip-floating hidden';
+floatingStatusTooltip.setAttribute('role', 'tooltip');
 
 function buttonLabel(icon: ButtonIcon, text: string): string {
   return `<span class="btn-icon" aria-hidden="true">${BUTTON_ICON_SVG[icon]}</span><span>${text}</span>`;
@@ -525,11 +529,84 @@ function createStatusPill(status: string, error?: string): HTMLSpanElement {
   }
 
   pill.textContent = status;
-  if (error) {
-    pill.title = error;
-  }
+  pill.setAttribute('aria-label', status);
 
   return pill;
+}
+
+function createStatusContent(status: string, error?: string): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'status-wrap';
+
+  const pill = createStatusPill(status, error);
+  wrap.appendChild(pill);
+
+  if (!error) {
+    return wrap;
+  }
+
+  pill.classList.add('status-has-tooltip');
+  pill.tabIndex = 0;
+  pill.setAttribute('aria-label', `${status}. ${error}`);
+  pill.setAttribute('aria-describedby', 'status-tooltip-floating');
+  bindStatusTooltip(pill, error);
+
+  return wrap;
+}
+
+function showStatusTooltip(anchor: HTMLElement, message: string): void {
+  floatingStatusTooltip.textContent = message;
+  floatingStatusTooltip.classList.remove('hidden');
+
+  const spacing = 8;
+  const viewportPadding = 10;
+  const anchorRect = anchor.getBoundingClientRect();
+  const tooltipRect = floatingStatusTooltip.getBoundingClientRect();
+
+  let left = anchorRect.left + anchorRect.width / 2 - tooltipRect.width / 2;
+  left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+  let top = anchorRect.bottom + spacing;
+  if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+    top = anchorRect.top - tooltipRect.height - spacing;
+  }
+  if (top < viewportPadding) {
+    top = viewportPadding;
+  }
+
+  floatingStatusTooltip.style.left = `${left}px`;
+  floatingStatusTooltip.style.top = `${top}px`;
+}
+
+function hideStatusTooltip(): void {
+  floatingStatusTooltip.classList.add('hidden');
+}
+
+function bindStatusTooltip(anchor: HTMLElement, message: string): void {
+  let visible = false;
+
+  const open = (): void => {
+    visible = true;
+    showStatusTooltip(anchor, message);
+  };
+
+  const close = (): void => {
+    visible = false;
+    hideStatusTooltip();
+  };
+
+  const reposition = (): void => {
+    if (!visible) {
+      return;
+    }
+    showStatusTooltip(anchor, message);
+  };
+
+  anchor.addEventListener('mouseenter', open);
+  anchor.addEventListener('mouseleave', close);
+  anchor.addEventListener('focus', open);
+  anchor.addEventListener('blur', close);
+  anchor.addEventListener('mousemove', reposition);
 }
 
 function renderGroupRow(host: HostView): HTMLTableRowElement {
@@ -652,7 +729,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
 
   const statusCell = document.createElement('td');
   statusCell.className = 'table-cell';
-  statusCell.appendChild(createStatusPill(forward.status, forward.error));
+  statusCell.appendChild(createStatusContent(forward.status, forward.error));
 
   const actionsCell = document.createElement('td');
   actionsCell.className = 'table-cell';
@@ -911,6 +988,14 @@ hostDialog.addEventListener('close', () => {
 
 const unsubscribe = window.tunnelApi.onStatusChanged(() => {
   void refreshHosts();
+});
+
+document.body.appendChild(floatingStatusTooltip);
+window.addEventListener('scroll', () => {
+  hideStatusTooltip();
+}, true);
+window.addEventListener('resize', () => {
+  hideStatusTooltip();
 });
 
 window.addEventListener('beforeunload', () => {
