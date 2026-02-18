@@ -385,7 +385,13 @@ function registerIpcHandlers(): void {
       throw new Error('Forward rule not found.');
     }
 
-    await manager.start(toRuntimeConfig(lookup.host, lookup.forward));
+    try {
+      await manager.start(toRuntimeConfig(lookup.host, lookup.forward));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[IPC forward:start] Failed to start ${id}: ${message}`);
+      throw new Error(message);
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.stopForward, async (_event, id: string) => {

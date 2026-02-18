@@ -26,6 +26,13 @@ interface RunningTunnel {
   server: net.Server;
 }
 
+type StartStage =
+  | 'local-port-precheck'
+  | 'jump-connect'
+  | 'jump-forward'
+  | 'target-connect'
+  | 'local-listen';
+
 export class TunnelManager extends EventEmitter {
   private readonly running = new Map<string, RunningTunnel>();
   private readonly statuses = new Map<string, TunnelStatusChange>();
@@ -56,6 +63,12 @@ export class TunnelManager extends EventEmitter {
     let server: net.Server | undefined;
 
     try {
+      try {
+        await this.assertLocalEndpointAvailable(config.localHost, config.localPort);
+      } catch (error) {
+        throw this.buildStartError('local-port-precheck', config, error);
+      }
+
       const targetConnectConfig = this.toConnectConfig({
         sshHost: config.sshHost,
         sshPort: config.sshPort,
@@ -68,16 +81,32 @@ export class TunnelManager extends EventEmitter {
 
       if (config.jumpHost) {
         jumpClient = new Client();
-        await this.connectClient(jumpClient, this.toConnectConfig(config.jumpHost));
-        targetConnectConfig.sock = await this.forwardThroughJump(
-          jumpClient,
-          config.sshHost,
-          config.sshPort
-        );
+        try {
+          await this.connectClient(jumpClient, this.toConnectConfig(config.jumpHost));
+        } catch (error) {
+          throw this.buildStartError('jump-connect', config, error);
+        }
+        try {
+          targetConnectConfig.sock = await this.forwardThroughJump(
+            jumpClient,
+            config.sshHost,
+            config.sshPort
+          );
+        } catch (error) {
+          throw this.buildStartError('jump-forward', config, error);
+        }
       }
 
-      await this.connectClient(targetClient, targetConnectConfig);
-      server = await this.createLocalServer(config, targetClient);
+      try {
+        await this.connectClient(targetClient, targetConnectConfig);
+      } catch (error) {
+        throw this.buildStartError('target-connect', config, error);
+      }
+      try {
+        server = await this.createLocalServer(config, targetClient);
+      } catch (error) {
+        throw this.buildStartError('local-listen', config, error);
+      }
 
       this.running.set(config.id, { targetClient, jumpClient, server });
       this.bindRuntimeHandlers(config.id, targetClient, jumpClient, server);
@@ -87,12 +116,23 @@ export class TunnelManager extends EventEmitter {
       this.safeEndClient(targetClient);
       this.safeEndClient(jumpClient);
       this.cleanup(config.id, { keepStatus: true });
+      const semanticMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[Tunnel ${config.id}] Failed to start tunnel`, {
+        local: `${config.localHost}:${config.localPort}`,
+        remote: `${config.remoteHost}:${config.remotePort}`,
+        targetSsh: `${config.username}@${config.sshHost}:${config.sshPort}`,
+        jumpSsh: config.jumpHost
+          ? `${config.jumpHost.username}@${config.jumpHost.sshHost}:${config.jumpHost.sshPort}`
+          : 'none',
+        error: semanticMessage,
+        cause: error,
+      });
       this.updateStatus({
         id: config.id,
         status: 'error',
-        error: error instanceof Error ? error.message : String(error),
+        error: semanticMessage,
       });
-      throw error;
+      throw new Error(semanticMessage);
     }
   }
 
@@ -247,6 +287,82 @@ export class TunnelManager extends EventEmitter {
       server.once('error', onError);
       server.listen(config.localPort, config.localHost);
     });
+  }
+
+  private assertLocalEndpointAvailable(localHost: string, localPort: number): Promise<void> {
+    const probe = net.createServer();
+
+    return new Promise((resolve, reject) => {
+      const onError = (error: Error): void => {
+        cleanup();
+        reject(error);
+      };
+
+      const onListening = (): void => {
+        probe.close(() => {
+          cleanup();
+          resolve();
+        });
+      };
+
+      const cleanup = (): void => {
+        probe.off('error', onError);
+        probe.off('listening', onListening);
+      };
+
+      probe.once('error', onError);
+      probe.once('listening', onListening);
+      probe.listen(localPort, localHost);
+    });
+  }
+
+  private buildStartError(stage: StartStage, config: ForwardRuntimeConfig, error: unknown): Error {
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const code = this.getErrorCode(error);
+
+    if (stage === 'local-port-precheck' || stage === 'local-listen') {
+      if (code === 'EADDRINUSE') {
+        return new Error(
+          `Local port ${config.localPort} on ${config.localHost} is already in use. Please choose another local port.`
+        );
+      }
+      if (code === 'EACCES') {
+        return new Error(
+          `Permission denied when binding ${config.localHost}:${config.localPort}. Try another local port or run with proper permissions.`
+        );
+      }
+      return new Error(
+        `Failed to bind local listener on ${config.localHost}:${config.localPort}: ${rawMessage}`
+      );
+    }
+
+    if (stage === 'jump-connect') {
+      return new Error(
+        `Unable to connect to jump host ${config.jumpHost?.sshHost}:${config.jumpHost?.sshPort} as ${config.jumpHost?.username}: ${rawMessage}`
+      );
+    }
+
+    if (stage === 'jump-forward') {
+      return new Error(
+        `Connected to jump host, but failed to open channel to target ${config.sshHost}:${config.sshPort}: ${rawMessage}`
+      );
+    }
+
+    if (config.jumpHost) {
+      return new Error(
+        `Unable to connect to target SSH host ${config.sshHost}:${config.sshPort} via jump host ${config.jumpHost.sshHost}:${config.jumpHost.sshPort}: ${rawMessage}`
+      );
+    }
+
+    return new Error(`Unable to connect to target SSH host ${config.sshHost}:${config.sshPort}: ${rawMessage}`);
+  }
+
+  private getErrorCode(error: unknown): string | undefined {
+    if (!error || typeof error !== 'object') {
+      return undefined;
+    }
+    const code = (error as NodeJS.ErrnoException).code;
+    return typeof code === 'string' ? code : undefined;
   }
 
   private bindRuntimeHandlers(
