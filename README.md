@@ -50,9 +50,24 @@ pnpm run dev
 ```bash
 pnpm run package:mac
 pnpm run package:win
+pnpm run package:linux
 ```
 
 Build artifacts are generated in `release/`.
+
+## macOS Unsigned App Notice
+
+This project currently ships unsigned macOS binaries (no Developer ID notarization).
+
+If macOS blocks launch on first run, use one of these options:
+
+1. In Finder, right-click the app and choose `Open`, then confirm.
+2. Or remove quarantine in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/SSH Tunnel Manager.app"
+open -a "SSH Tunnel Manager"
+```
 
 ## CI/CD
 
@@ -63,7 +78,7 @@ Workflow: `.github/workflows/release.yml`
 - Triggered on push to `main` (or manual run)
 - Automatically bumps patch version
 - Tags release (`vX.Y.Z`)
-- Builds macOS and Windows artifacts
+- Builds macOS, Windows, and Linux artifacts
 - Publishes GitHub Release
 
 ### GitHub Pages

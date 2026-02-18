@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH="$(find release -type d -name 'SSH Tunnel Manager.app' | head -n 1)"
+          APP_PATH="$(find "${GITHUB_WORKSPACE}/release" -type d -name 'SSH Tunnel Manager.app' | head -n 1)"
           if [ -z "${APP_PATH}" ]; then
             echo "Packaged .app bundle not found under release/"
             exit 1
@@ -99,8 +99,9 @@ jobs:
           APP_BIN="${APP_PATH}/Contents/MacOS/SSH Tunnel Manager"
           APP_MAIN="${APP_PATH}/Contents/Resources/app.asar/dist/main/main.js"
           ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
+            const path = require("node:path");
             const createRequire = require("node:module").createRequire;
-            const req = createRequire(process.argv[1]);
+            const req = createRequire(path.resolve(process.argv[1]));
             for (const mod of ["ssh2", "asn1", "bcrypt-pbkdf"]) {
               try {
                 req(mod);
@@ -169,8 +170,9 @@ jobs:
           $appMain = Join-Path $exe.Directory.FullName "resources\\app.asar\\dist\\main\\main.js"
           $env:ELECTRON_RUN_AS_NODE = "1"
           & $exe.FullName -e "
+            const path = require('node:path');
             const createRequire = require('node:module').createRequire;
-            const req = createRequire(process.argv[1]);
+            const req = createRequire(path.resolve(process.argv[1]));
             for (const mod of ['ssh2', 'asn1', 'bcrypt-pbkdf']) {
               try {
                 req(mod);
@@ -221,7 +223,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_DIR="$(find release -type d -name 'linux-unpacked' | head -n 1)"
+          APP_DIR="$(find "${GITHUB_WORKSPACE}/release" -type d -name 'linux-unpacked' | head -n 1)"
           if [ -z "${APP_DIR}" ]; then
             echo "linux-unpacked not found under release/"
             exit 1
@@ -238,8 +240,9 @@ jobs:
 
           APP_MAIN="${APP_DIR}/resources/app.asar/dist/main/main.js"
           ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
+            const path = require("node:path");
             const createRequire = require("node:module").createRequire;
-            const req = createRequire(process.argv[1]);
+            const req = createRequire(path.resolve(process.argv[1]));
             for (const mod of ["ssh2", "asn1", "bcrypt-pbkdf"]) {
               try {
                 req(mod);

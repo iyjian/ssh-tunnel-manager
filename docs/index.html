@@ -56,8 +56,18 @@ pnpm run start</code></pre>
         <div>
           <h2>Build</h2>
           <pre><code>pnpm run package:mac
-pnpm run package:win</code></pre>
+pnpm run package:win
+pnpm run package:linux</code></pre>
         </div>
+      </section>
+
+      <section class="section">
+        <h2>macOS First Launch (Unsigned Build)</h2>
+        <p>
+          If macOS blocks the app from GitHub Releases, run:
+        </p>
+        <pre><code>xattr -dr com.apple.quarantine "/Applications/SSH Tunnel Manager.app"
+open -a "SSH Tunnel Manager"</code></pre>
       </section>
 
       <section class="section">
