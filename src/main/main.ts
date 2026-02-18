@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } from 'electron';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
@@ -18,6 +18,12 @@ import type {
 const manager = new TunnelManager();
 let store: TunnelStore | null = null;
 const APP_ICON_PATH = path.join(__dirname, '..', '..', 'assets', 'icon.png');
+const APP_DISPLAY_NAME = 'SSH Tunnel Manager';
+
+app.setName(APP_DISPLAY_NAME);
+app.setAboutPanelOptions({
+  applicationName: APP_DISPLAY_NAME,
+});
 
 const IPC_CHANNELS = {
   listHosts: 'host:list',
@@ -86,6 +92,70 @@ function applyAppIcon(): void {
   if (icon) {
     app.dock.setIcon(icon);
   }
+}
+
+function applyAppMenu(): void {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: APP_DISPLAY_NAME,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'File',
+      submenu: [{ role: 'close' }],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }],
+    },
+    {
+      label: 'Help',
+      submenu: [],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function validateForwardDraft(input: ForwardRuleDraft): ForwardRule {
@@ -384,6 +454,7 @@ async function bootstrap(): Promise<void> {
   await store.load();
 
   applyAppIcon();
+  applyAppMenu();
   registerIpcHandlers();
   wireStatusBroadcast();
   createWindow();
