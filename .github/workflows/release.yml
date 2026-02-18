@@ -119,8 +119,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --config.node-linker=hoisted
 
+      - name: Force npm_execpath to pnpm.cmd
+        shell: pwsh
+        run: |
+          $pnpmCmd = (Get-Command pnpm.cmd).Source
+          "npm_execpath=$pnpmCmd" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using npm_execpath: $pnpmCmd"
+
       - name: Build windows package
-        run: pnpm run package:win
+        run: |
+          pnpm run build
+          pnpm exec electron-builder --win nsis --publish never
 
       - name: Upload windows artifacts
         uses: actions/upload-artifact@v4
