@@ -288,6 +288,7 @@ function toHostView(host: HostConfig): HostView {
         ...forward,
         status: status.status,
         error: status.error,
+        reconnectAt: status.reconnectAt,
       };
     }),
   };

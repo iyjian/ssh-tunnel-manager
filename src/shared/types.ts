@@ -61,6 +61,7 @@ export interface HostDraft {
 export interface ForwardRuleView extends ForwardRule {
   status: TunnelStatus;
   error?: string;
+  reconnectAt?: number;
 }
 
 export interface HostView extends Omit<HostConfig, 'forwards'> {
@@ -71,6 +72,7 @@ export interface TunnelStatusChange {
   id: string;
   status: TunnelStatus;
   error?: string;
+  reconnectAt?: number;
 }
 
 export interface PrivateKeyImportResult {

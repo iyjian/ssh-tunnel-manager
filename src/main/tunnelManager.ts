@@ -33,9 +33,13 @@ type StartStage =
   | 'target-connect'
   | 'local-listen';
 
+const RECONNECT_DELAY_MS = 5000;
+
 export class TunnelManager extends EventEmitter {
   private readonly running = new Map<string, RunningTunnel>();
   private readonly statuses = new Map<string, TunnelStatusChange>();
+  private readonly configs = new Map<string, ForwardRuntimeConfig>();
+  private readonly reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   getStatus(id: string): TunnelStatusChange {
     return this.statuses.get(id) ?? { id, status: 'stopped' };
@@ -48,10 +52,18 @@ export class TunnelManager extends EventEmitter {
   }
 
   clearTunnel(id: string): void {
+    this.clearReconnectTimer(id);
+    this.configs.delete(id);
     this.statuses.delete(id);
   }
 
   async start(config: ForwardRuntimeConfig): Promise<void> {
+    this.configs.set(config.id, {
+      ...config,
+      jumpHost: config.jumpHost ? { ...config.jumpHost } : undefined,
+    });
+    this.clearReconnectTimer(config.id);
+
     if (this.running.has(config.id)) {
       return;
     }
@@ -127,16 +139,14 @@ export class TunnelManager extends EventEmitter {
         error: semanticMessage,
         cause: error,
       });
-      this.updateStatus({
-        id: config.id,
-        status: 'error',
-        error: semanticMessage,
-      });
+      this.markErrorAndScheduleReconnect(config.id, semanticMessage);
       throw new Error(semanticMessage);
     }
   }
 
   async stop(id: string): Promise<void> {
+    this.clearReconnectTimer(id);
+
     if (!this.running.has(id)) {
       this.updateStatus({ id, status: 'stopped' });
       return;
@@ -148,6 +158,9 @@ export class TunnelManager extends EventEmitter {
   }
 
   async stopAll(): Promise<void> {
+    for (const id of this.reconnectTimers.keys()) {
+      this.clearReconnectTimer(id);
+    }
     await Promise.all([...this.running.keys()].map((id) => this.stop(id)));
   }
 
@@ -375,12 +388,8 @@ export class TunnelManager extends EventEmitter {
       if (!this.running.has(id)) {
         return;
       }
-      this.updateStatus({
-        id,
-        status: 'error',
-        error: `${prefix}: ${error.message}`,
-      });
       this.cleanup(id, { keepStatus: true });
+      this.markErrorAndScheduleReconnect(id, `${prefix}: ${error.message}`);
     };
 
     server.on('error', (error) => {
@@ -398,7 +407,7 @@ export class TunnelManager extends EventEmitter {
       const current = this.statuses.get(id);
       this.cleanup(id, { keepStatus: true });
       if (current?.status !== 'error') {
-        this.updateStatus({ id, status: 'stopped' });
+        this.markErrorAndScheduleReconnect(id, 'SSH connection closed unexpectedly.');
       }
     });
 
@@ -412,14 +421,10 @@ export class TunnelManager extends EventEmitter {
           return;
         }
         const current = this.statuses.get(id);
-        if (current?.status !== 'error') {
-          this.updateStatus({
-            id,
-            status: 'error',
-            error: 'Jump SSH connection closed unexpectedly.',
-          });
-        }
         this.cleanup(id, { keepStatus: true });
+        if (current?.status !== 'error') {
+          this.markErrorAndScheduleReconnect(id, 'Jump SSH connection closed unexpectedly.');
+        }
       });
     }
   }
@@ -458,6 +463,49 @@ export class TunnelManager extends EventEmitter {
   private updateStatus(change: TunnelStatusChange): void {
     this.statuses.set(change.id, change);
     this.emit('status-changed', change);
+  }
+
+  private markErrorAndScheduleReconnect(id: string, error: string): void {
+    const reconnectAt = Date.now() + RECONNECT_DELAY_MS;
+    this.updateStatus({
+      id,
+      status: 'error',
+      error,
+      reconnectAt,
+    });
+    this.scheduleReconnect(id, reconnectAt);
+  }
+
+  private scheduleReconnect(id: string, reconnectAt: number): void {
+    const config = this.configs.get(id);
+    if (!config) {
+      return;
+    }
+
+    this.clearReconnectTimer(id);
+
+    const delay = Math.max(0, reconnectAt - Date.now());
+    const timer = setTimeout(() => {
+      this.reconnectTimers.delete(id);
+      const current = this.statuses.get(id);
+      if (current?.status === 'stopped' || current?.status === 'stopping') {
+        return;
+      }
+      void this.start(config).catch(() => {
+        // state updates are emitted by manager
+      });
+    }, delay);
+
+    this.reconnectTimers.set(id, timer);
+  }
+
+  private clearReconnectTimer(id: string): void {
+    const timer = this.reconnectTimers.get(id);
+    if (!timer) {
+      return;
+    }
+    clearTimeout(timer);
+    this.reconnectTimers.delete(id);
   }
 
   private safeEndClient(client: Client | undefined): void {

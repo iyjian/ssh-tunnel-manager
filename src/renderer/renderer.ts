@@ -163,6 +163,14 @@ floatingStatusTooltip.id = 'status-tooltip-floating';
 floatingStatusTooltip.className = 'status-tooltip-floating hidden';
 floatingStatusTooltip.setAttribute('role', 'tooltip');
 
+function formatRetryText(reconnectAt: number): string {
+  const seconds = Math.ceil((reconnectAt - Date.now()) / 1000);
+  if (seconds > 0) {
+    return `Retry in ${seconds}s`;
+  }
+  return 'Retrying...';
+}
+
 function buttonLabel(icon: ButtonIcon, text: string): string {
   return `<span class="btn-icon" aria-hidden="true">${BUTTON_ICON_SVG[icon]}</span><span>${text}</span>`;
 }
@@ -542,12 +550,20 @@ function createStatusIndicator(status: string): HTMLSpanElement {
   return indicator;
 }
 
-function createStatusContent(status: string, error?: string): HTMLElement {
+function createStatusContent(status: string, error?: string, reconnectAt?: number): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'status-wrap';
 
   const indicator = createStatusIndicator(status);
   wrap.appendChild(indicator);
+
+  if (status === 'error' && typeof reconnectAt === 'number' && reconnectAt > Date.now()) {
+    const retryLabel = document.createElement('span');
+    retryLabel.className = 'status-retry';
+    retryLabel.dataset.reconnectAt = String(reconnectAt);
+    retryLabel.textContent = formatRetryText(reconnectAt);
+    wrap.appendChild(retryLabel);
+  }
 
   if (!error) {
     return wrap;
@@ -637,6 +653,23 @@ function bindStatusTooltip(anchor: HTMLElement, message: string): void {
   anchor.addEventListener('focus', open);
   anchor.addEventListener('blur', close);
   anchor.addEventListener('mousemove', reposition);
+}
+
+function updateRetryCountdowns(): void {
+  const retryLabels = document.querySelectorAll<HTMLElement>('.status-retry[data-reconnect-at]');
+  retryLabels.forEach((retryLabel) => {
+    const reconnectAtRaw = retryLabel.dataset.reconnectAt;
+    if (!reconnectAtRaw) {
+      return;
+    }
+
+    const reconnectAt = Number(reconnectAtRaw);
+    if (!Number.isFinite(reconnectAt)) {
+      return;
+    }
+
+    retryLabel.textContent = formatRetryText(reconnectAt);
+  });
 }
 
 function renderGroupRow(host: HostView): HTMLTableRowElement {
@@ -759,7 +792,7 @@ function renderForwardRow(host: HostView, index: number): HTMLTableRowElement {
 
   const statusCell = document.createElement('td');
   statusCell.className = 'table-cell';
-  statusCell.appendChild(createStatusContent(forward.status, forward.error));
+  statusCell.appendChild(createStatusContent(forward.status, forward.error, forward.reconnectAt));
 
   const actionsCell = document.createElement('td');
   actionsCell.className = 'table-cell';
@@ -1019,6 +1052,7 @@ hostDialog.addEventListener('close', () => {
 const unsubscribe = window.tunnelApi.onStatusChanged(() => {
   void refreshHosts();
 });
+const retryCountdownInterval = window.setInterval(updateRetryCountdowns, 1000);
 
 document.body.appendChild(floatingStatusTooltip);
 window.addEventListener('scroll', () => {
@@ -1030,6 +1064,7 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('beforeunload', () => {
   unsubscribe();
+  window.clearInterval(retryCountdownInterval);
 });
 
 applyStaticButtonIcons();
