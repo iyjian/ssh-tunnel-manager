@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      asn1:
+        specifier: ^0.2.6
+        version: 0.2.6
+      bcrypt-pbkdf:
+        specifier: ^1.0.2
+        version: 1.0.2
       ssh2:
         specifier: ^1.15.0
         version: 1.17.0

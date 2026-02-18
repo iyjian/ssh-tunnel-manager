@@ -70,6 +70,8 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "asn1": "^0.2.6",
+    "bcrypt-pbkdf": "^1.0.2",
     "ssh2": "^1.15.0"
   }
 }
