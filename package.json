@@ -1,0 +1,61 @@
+{
+  "name": "ssh-tunnel-manager",
+  "version": "0.1.0",
+  "description": "Desktop SSH tunnel manager built with Electron and TypeScript",
+  "main": "dist/main/main.js",
+  "packageManager": "pnpm@9.1.2",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && pnpm run build:main && pnpm run build:renderer && pnpm run copy:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "tsc -p tsconfig.renderer.json",
+    "copy:renderer": "cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/styles.css dist/renderer/styles.css",
+    "start": "pnpm run build && electron .",
+    "dev": "pnpm run build && electron .",
+    "package:mac": "pnpm run build && electron-builder --mac dmg --publish never",
+    "package:win": "pnpm run build && electron-builder --win nsis --publish never"
+  },
+  "keywords": [
+    "electron",
+    "ssh",
+    "tunnel",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.wuchong.sshtunnelmanager",
+    "productName": "SSH Tunnel Manager",
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "electron": "^33.2.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0"
+  }
+}
