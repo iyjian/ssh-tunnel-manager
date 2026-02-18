@@ -1,3 +1,33 @@
+@font-face {
+  font-family: 'STM UI';
+  src:
+    url('../../assets/fonts/app-ui-regular.woff2') format('woff2'),
+    url('../../assets/fonts/app-ui-regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'STM UI';
+  src:
+    url('../../assets/fonts/app-ui-medium.woff2') format('woff2'),
+    url('../../assets/fonts/app-ui-medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'STM UI';
+  src:
+    url('../../assets/fonts/app-ui-semibold.woff2') format('woff2'),
+    url('../../assets/fonts/app-ui-semibold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
 :root {
   --color-bg-page: #f4f7fb;
   --color-bg-surface: #ffffff;
@@ -28,7 +58,7 @@
   --color-error-500: #dc2626;
   --color-error-bg: #fee2e2;
 
-  --font-family-base: 'Inter', 'Segoe UI', 'PingFang SC', sans-serif;
+  --font-family-base: 'STM UI', 'Inter', 'Segoe UI', 'PingFang SC', sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
@@ -62,6 +92,14 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   background: var(--color-bg-page);
+  font-synthesis: none;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: var(--font-family-base);
 }
 
 .app-shell {
