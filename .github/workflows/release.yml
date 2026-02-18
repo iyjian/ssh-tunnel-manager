@@ -139,11 +139,44 @@ jobs:
             release/*.exe.blockmap
             release/latest.yml
 
+  build_linux:
+    needs: bump_version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump_version.outputs.commit_sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build linux package (amd64)
+        run: pnpm run package:linux
+
+      - name: Upload linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          if-no-files-found: error
+          path: |
+            release/*.AppImage
+
   create_release:
     needs:
       - bump_version
       - build_mac
       - build_win
+      - build_linux
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -201,5 +234,6 @@ jobs:
             artifacts/win-artifacts/*.exe
             artifacts/win-artifacts/*.exe.blockmap
             artifacts/win-artifacts/latest.yml
+            artifacts/linux-artifacts/*.AppImage
           overwrite_files: true
           fail_on_unmatched_files: true

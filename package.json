@@ -13,7 +13,8 @@
     "start": "pnpm run build && electron .",
     "dev": "pnpm run build && electron .",
     "package:mac": "pnpm run build && electron-builder --mac dmg --publish never",
-    "package:win": "pnpm run build && electron-builder --win nsis --publish never"
+    "package:win": "pnpm run build && electron-builder --win nsis --publish never",
+    "package:linux": "pnpm run build && electron-builder --linux AppImage --x64 --publish never"
   },
   "keywords": [
     "electron",
@@ -47,6 +48,18 @@
       "icon": "assets/icon.ico",
       "target": [
         "nsis"
+      ]
+    },
+    "linux": {
+      "icon": "assets",
+      "category": "Development",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     }
   },
