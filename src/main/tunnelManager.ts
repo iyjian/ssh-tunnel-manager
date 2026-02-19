@@ -263,7 +263,28 @@ export class TunnelManager extends EventEmitter {
         config.remotePort,
         (forwardError, stream) => {
           if (forwardError) {
-            socket.destroy(forwardError);
+            // Avoid throwing uncaught socket errors when SSH channel open fails.
+            socket.once('error', () => {
+              // no-op
+            });
+            socket.destroy();
+
+            const message = forwardError.message ?? String(forwardError);
+            if (this.isNoSshResponseError(message) && this.running.has(config.id)) {
+              const current = this.statuses.get(config.id);
+              if (current?.status !== 'error') {
+                this.cleanup(config.id, { keepStatus: true });
+                this.markErrorAndScheduleReconnect(
+                  config.id,
+                  this.buildSshConnectionErrorMessage({
+                    kind: 'target',
+                    config,
+                    rawMessage: message,
+                    code: this.getErrorCode(forwardError),
+                  })
+                );
+              }
+            }
             return;
           }
 
@@ -350,9 +371,12 @@ export class TunnelManager extends EventEmitter {
     }
 
     if (stage === 'jump-connect') {
-      return new Error(
-        `Unable to connect to jump host ${config.jumpHost?.sshHost}:${config.jumpHost?.sshPort} as ${config.jumpHost?.username}: ${rawMessage}`
-      );
+      return new Error(this.buildSshConnectionErrorMessage({
+        kind: 'jump',
+        config,
+        rawMessage,
+        code,
+      }));
     }
 
     if (stage === 'jump-forward') {
@@ -362,12 +386,89 @@ export class TunnelManager extends EventEmitter {
     }
 
     if (config.jumpHost) {
-      return new Error(
-        `Unable to connect to target SSH host ${config.sshHost}:${config.sshPort} via jump host ${config.jumpHost.sshHost}:${config.jumpHost.sshPort}: ${rawMessage}`
-      );
+      return new Error(this.buildSshConnectionErrorMessage({
+        kind: 'target',
+        config,
+        rawMessage,
+        code,
+      }));
     }
 
-    return new Error(`Unable to connect to target SSH host ${config.sshHost}:${config.sshPort}: ${rawMessage}`);
+    return new Error(this.buildSshConnectionErrorMessage({
+      kind: 'target',
+      config,
+      rawMessage,
+      code,
+    }));
+  }
+
+  private buildSshConnectionErrorMessage(options: {
+    kind: 'target' | 'jump';
+    config: ForwardRuntimeConfig;
+    rawMessage: string;
+    code?: string;
+  }): string {
+    const { kind, config, rawMessage, code } = options;
+    const host = kind === 'jump' ? config.jumpHost?.sshHost ?? config.sshHost : config.sshHost;
+    const port = kind === 'jump' ? config.jumpHost?.sshPort ?? config.sshPort : config.sshPort;
+    const username = kind === 'jump' ? config.jumpHost?.username ?? config.username : config.username;
+    const endpoint = `${host}:${port}`;
+
+    const prefix = kind === 'jump'
+      ? `Unable to connect to jump host ${endpoint} as ${username}.`
+      : config.jumpHost
+        ? `Unable to connect to target SSH host ${endpoint} via jump host ${config.jumpHost.sshHost}:${config.jumpHost.sshPort}.`
+        : `Unable to connect to target SSH host ${endpoint}.`;
+
+    const hint = this.buildSshConnectionHint({ host, port, code, rawMessage, username });
+    if (hint) {
+      return `${prefix} ${hint}`;
+    }
+
+    return `${prefix} ${rawMessage}`;
+  }
+
+  private buildSshConnectionHint(options: {
+    host: string;
+    port: number;
+    rawMessage: string;
+    code?: string;
+    username: string;
+  }): string | undefined {
+    const { host, port, rawMessage, code, username } = options;
+    const normalized = rawMessage.toLowerCase();
+
+    if (code === 'ENOTFOUND') {
+      return `DNS lookup failed for "${host}". Please check the host value.`;
+    }
+    if (code === 'ECONNREFUSED') {
+      return `Connection was refused. Make sure an SSH server is listening on port ${port}.`;
+    }
+    if (code === 'ETIMEDOUT') {
+      return 'Connection timed out. Check network reachability and firewall rules.';
+    }
+    if (code === 'ECONNRESET') {
+      return 'Connection was reset by peer during SSH negotiation.';
+    }
+    if (this.isNoSshResponseError(rawMessage)) {
+      return `No SSH response was received from ${host}:${port}. Verify the port points to an SSH service.`;
+    }
+    if (normalized.includes('all configured authentication methods failed')) {
+      return `Authentication failed for ${username}. Verify auth method, username, and credentials.`;
+    }
+    if (normalized.includes('cannot parse privatekey')) {
+      return 'Private key format is invalid or unsupported.';
+    }
+    if (normalized.includes('encrypted private openssh key detected, but no passphrase given')) {
+      return 'Private key is encrypted and requires a passphrase.';
+    }
+
+    return undefined;
+  }
+
+  private isNoSshResponseError(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return normalized.includes('no response from server') || normalized.includes('connection lost before handshake');
   }
 
   private getErrorCode(error: unknown): string | undefined {
@@ -389,7 +490,17 @@ export class TunnelManager extends EventEmitter {
         return;
       }
       this.cleanup(id, { keepStatus: true });
-      this.markErrorAndScheduleReconnect(id, `${prefix}: ${error.message}`);
+      const config = this.configs.get(id);
+      const message = config
+        ? `${prefix}: ${this.buildSshConnectionHint({
+            host: prefix === 'Jump SSH error' ? config.jumpHost?.sshHost ?? config.sshHost : config.sshHost,
+            port: prefix === 'Jump SSH error' ? config.jumpHost?.sshPort ?? config.sshPort : config.sshPort,
+            code: this.getErrorCode(error),
+            rawMessage: error.message,
+            username: prefix === 'Jump SSH error' ? config.jumpHost?.username ?? config.username : config.username,
+          }) ?? error.message}`
+        : `${prefix}: ${error.message}`;
+      this.markErrorAndScheduleReconnect(id, message);
     };
 
     server.on('error', (error) => {
