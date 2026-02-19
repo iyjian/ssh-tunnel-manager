@@ -5,136 +5,107 @@
 [![Pages](https://img.shields.io/github/deployments/iyjian/ssh-tunnel-manager/github-pages?label=pages)](https://iyjian.github.io/ssh-tunnel-manager/)
 [![Release Workflow](https://img.shields.io/github/actions/workflow/status/iyjian/ssh-tunnel-manager/release.yml?label=release)](https://github.com/iyjian/ssh-tunnel-manager/actions/workflows/release.yml)
 
-Desktop SSH tunnel manager built with Electron and TypeScript.
+A minimal desktop app for managing SSH local port forwarding with grouped hosts, per-rule controls, and migration-friendly config import/export.
 
-- Group forwarding rules by SSH host
-- Start/stop each rule independently
-- Support password/private key auth
-- Support optional jump host (bastion)
-- Import/export full tunnel config for migration
+Website: [https://iyjian.github.io/ssh-tunnel-manager/](https://iyjian.github.io/ssh-tunnel-manager/)
 
-## Website
+## Why SSH Tunnel Manager
 
-Project website (GitHub Pages):
-
-- [https://iyjian.github.io/ssh-tunnel-manager/](https://iyjian.github.io/ssh-tunnel-manager/)
+- Manage many tunnel rules without remembering long `ssh -L ...` commands
+- Group rules by SSH host and control each rule independently
+- Use password or private key auth (with optional jump host / bastion)
+- Share or migrate setup between machines with JSON import/export
 
 ## Features
 
-- Host-based tunnel grouping with clear table sections
-- Multiple forwarding rules under one host
-- Per-rule lifecycle controls: start, stop, delete
-- Modal-based host editing/creation workflow
+- Host-based grouping with clean, consistent rule table layout
+- Multiple forwarding rules under one host profile
+- Start and stop per rule
+- Auto-start rules
+- Connection error diagnostics with user-friendly messages
+- Retry countdown for failed rules
 - Auth methods:
+  - Private key (default)
   - Password
-  - Private key + optional passphrase
-- Jump host support for target hosts in private networks
-- Private key import from local files (default directory `~/.ssh`)
-- Rule auto-start support (`autoStart`)
-- Config import/export from the Overview quick actions
+- Private key import from local file
+- Jump host support
+- Config import/export from the app UI
 
-## Config Import/Export
+## Download
 
-Use the `Import Config` and `Export Config` buttons in the Overview section.
+Get prebuilt binaries from [Releases](https://github.com/iyjian/ssh-tunnel-manager/releases):
 
-- Export writes all host/rule settings to a JSON file.
-- Import accepts:
-  - a host array (`[...]`)
-  - or an object with `hosts` (`{ "hosts": [...] }`)
-- Import replaces current local config and re-applies `autoStart` rules.
+- macOS: `.dmg`
+- Windows: `.exe` (NSIS)
+- Linux (amd64): `.AppImage`
 
-## Quick Start
+## macOS Notice (Unsigned App)
 
-```bash
-pnpm install
-pnpm run start
-```
+Current macOS artifacts are unsigned. If launch is blocked on first run:
 
-## Development
-
-```bash
-pnpm run build
-pnpm run dev
-```
-
-## Package Builds
-
-```bash
-pnpm run package:mac
-pnpm run package:win
-pnpm run package:linux
-```
-
-Build artifacts are generated in `release/`.
-
-## macOS Unsigned App Notice
-
-This project currently ships unsigned macOS binaries (no Developer ID notarization).
-
-If macOS blocks launch on first run, use one of these options:
-
-1. In Finder, right-click the app and choose `Open`, then confirm.
-2. Or remove quarantine in Terminal:
+1. Right click the app in Finder and choose `Open`
+2. Or run:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/SSH Tunnel Manager.app"
 open -a "SSH Tunnel Manager"
 ```
 
+## Config Import/Export
+
+Use `Import Config` and `Export Config` in the Overview quick actions.
+
+- Export saves all hosts and rules as JSON
+- Import supports:
+  - host array (`[...]`)
+  - wrapped object (`{ "hosts": [...] }`)
+- Import replaces local config and reapplies `autoStart` rules
+
+## Developer Quick Start
+
+```bash
+pnpm install
+pnpm run start
+```
+
+## Build Commands
+
+```bash
+pnpm run build
+pnpm run package:mac
+pnpm run package:win
+pnpm run package:linux
+```
+
+Artifacts are generated in `release/`.
+
 ## CI/CD
 
-### Release pipeline
+- Release workflow: `.github/workflows/release.yml`
+  - bumps patch version
+  - creates tag and release
+  - builds macOS / Windows / Linux artifacts
+- Pages workflow: `.github/workflows/pages.yml`
+  - deploys `docs/` to GitHub Pages
 
-Workflow: `.github/workflows/release.yml`
+## Security Note
 
-- Triggered on push to `main` (or manual run)
-- Automatically bumps patch version
-- Tags release (`vX.Y.Z`)
-- Builds macOS, Windows, and Linux artifacts
-- Publishes GitHub Release
+SSH credentials are stored in local config (`userData/tunnels.json`).
 
-### GitHub Pages
+For stronger protection, integrate OS secret storage (Keychain / Credential Manager / libsecret) in a future release.
 
-Workflow: `.github/workflows/pages.yml`
+## Promotion Kit
 
-- Deploys the `docs/` directory to GitHub Pages on push to `main`
+- Release template: `.github/RELEASE_TEMPLATE.md`
+- Launch copy (EN + ZH): `marketing/LAUNCH_COPY.md`
 
 ## Contributing
 
 Contributions are welcome.
 
-- Read [CONTRIBUTING.md](./CONTRIBUTING.md)
-- Follow [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
-- Review [SECURITY.md](./SECURITY.md) for vulnerability reporting
-
-## Roadmap
-
-- Secret storage integration (Keychain/Credential Manager)
-- Multi-hop jump chain support
-- Rule templates and sharing
-- Better diagnostics and connection test tools
-
-## Project Structure
-
-```text
-src/
-  main/
-    main.ts          # Electron main process + IPC handlers
-    preload.ts       # Secure renderer API bridge
-    store.ts         # Tunnel configuration persistence
-    tunnelManager.ts # SSH tunnel runtime management
-  renderer/
-    index.html
-    styles.css
-    renderer.ts      # UI behavior and rendering logic
-  shared/
-    types.ts         # Shared types between main and renderer
-```
-
-## Security Notes
-
-SSH credentials are currently stored in local configuration (`userData/tunnels.json`).
-If you need stronger protection, integrate OS-native secret storage.
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- [SECURITY.md](./SECURITY.md)
 
 ## License
 
