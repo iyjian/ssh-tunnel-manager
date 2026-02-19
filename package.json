@@ -1,6 +1,6 @@
 {
   "name": "ssh-tunnel-manager",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Desktop SSH tunnel manager built with Electron and TypeScript",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@9.1.2",
