@@ -11,6 +11,7 @@ Desktop SSH tunnel manager built with Electron and TypeScript.
 - Start/stop each rule independently
 - Support password/private key auth
 - Support optional jump host (bastion)
+- Import/export full tunnel config for migration
 
 ## Website
 
@@ -30,6 +31,17 @@ Project website (GitHub Pages):
 - Jump host support for target hosts in private networks
 - Private key import from local files (default directory `~/.ssh`)
 - Rule auto-start support (`autoStart`)
+- Config import/export from the Overview quick actions
+
+## Config Import/Export
+
+Use the `Import Config` and `Export Config` buttons in the Overview section.
+
+- Export writes all host/rule settings to a JSON file.
+- Import accepts:
+  - a host array (`[...]`)
+  - or an object with `hosts` (`{ "hosts": [...] }`)
+- Import replaces current local config and re-applies `autoStart` rules.
 
 ## Quick Start
 

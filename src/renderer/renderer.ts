@@ -65,6 +65,8 @@ const statErrorsElement = requireElement<HTMLElement>('#stat-errors');
 const overviewHintElement = requireElement<HTMLElement>('#overview-hint');
 const qaAddHostButton = requireElement<HTMLButtonElement>('#qa-add-host-btn');
 const qaAddJumpHostButton = requireElement<HTMLButtonElement>('#qa-add-jump-host-btn');
+const qaImportConfigButton = requireElement<HTMLButtonElement>('#qa-import-config-btn');
+const qaExportConfigButton = requireElement<HTMLButtonElement>('#qa-export-config-btn');
 const resetButton = requireElement<HTMLButtonElement>('#reset-btn');
 const messageElement = requireElement<HTMLParagraphElement>('#message');
 
@@ -80,6 +82,7 @@ type ButtonIcon =
   | 'refresh'
   | 'close'
   | 'upload'
+  | 'download'
   | 'edit'
   | 'delete'
   | 'play'
@@ -118,6 +121,13 @@ const BUTTON_ICON_SVG: Record<ButtonIcon, string> = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 15V5"></path>
       <path d="M9 8l3-3l3 3"></path>
+      <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+    </svg>
+  `,
+  download: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v10"></path>
+      <path d="M9 12l3 3l3-3"></path>
       <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
     </svg>
   `,
@@ -182,6 +192,8 @@ function iconOnly(icon: ButtonIcon): string {
 function applyStaticButtonIcons(): void {
   qaAddHostButton.innerHTML = buttonLabel('plus', 'Add Host');
   qaAddJumpHostButton.innerHTML = buttonLabel('route', 'Add Host via Jump');
+  qaImportConfigButton.innerHTML = buttonLabel('upload', 'Import Config');
+  qaExportConfigButton.innerHTML = buttonLabel('download', 'Export Config');
   closeHostDialogButton.innerHTML = iconOnly('close');
   importPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
   importJumpPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
@@ -310,6 +322,12 @@ function parsePort(value: string, label: string): number {
 function getFileName(filePath: string): string {
   const parts = filePath.split(/[/\\]/);
   return parts[parts.length - 1] || filePath;
+}
+
+function formatConfigSummary(hostCount: number, ruleCount: number): string {
+  const hostLabel = hostCount === 1 ? 'host' : 'hosts';
+  const ruleLabel = ruleCount === 1 ? 'rule' : 'rules';
+  return `${hostCount} ${hostLabel}, ${ruleCount} ${ruleLabel}`;
 }
 
 function getForwardRows(): HTMLDivElement[] {
@@ -974,6 +992,44 @@ qaAddHostButton.addEventListener('click', () => {
 
 qaAddJumpHostButton.addEventListener('click', () => {
   openCreateHostDialog({ withJumpHost: true });
+});
+
+qaImportConfigButton.addEventListener('click', () => {
+  void runAction(async () => {
+    if (hosts.length > 0) {
+      const ok = await window.tunnelApi.confirmAction({
+        title: 'Import Config',
+        message: 'Importing will replace current hosts and rules.',
+        detail: 'Current tunnels will be stopped before import.',
+        kind: 'warning',
+        confirmLabel: 'Import',
+        cancelLabel: 'Cancel',
+      });
+      if (!ok) {
+        return;
+      }
+    }
+
+    const result = await window.tunnelApi.importConfig();
+    if (!result) {
+      return;
+    }
+
+    if (hostDialog.open) {
+      closeHostDialog();
+    }
+    setMessage(`Imported ${formatConfigSummary(result.hostCount, result.ruleCount)} from ${getFileName(result.path)}`, 'success');
+  });
+});
+
+qaExportConfigButton.addEventListener('click', () => {
+  void runAction(async () => {
+    const result = await window.tunnelApi.exportConfig();
+    if (!result) {
+      return;
+    }
+    setMessage(`Exported ${formatConfigSummary(result.hostCount, result.ruleCount)} to ${getFileName(result.path)}`, 'success');
+  });
 });
 
 closeHostDialogButton.addEventListener('click', () => {

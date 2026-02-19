@@ -10,6 +10,8 @@ const api: TunnelApi = {
   startForward: (id: string) => ipcRenderer.invoke('forward:start', id),
   stopForward: (id: string) => ipcRenderer.invoke('forward:stop', id),
   importPrivateKey: () => ipcRenderer.invoke('auth:import-private-key'),
+  exportConfig: () => ipcRenderer.invoke('config:export'),
+  importConfig: () => ipcRenderer.invoke('config:import'),
   confirmAction: (options: ConfirmDialogOptions) => ipcRenderer.invoke('dialog:confirm', options),
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, change: TunnelStatusChange): void => {

@@ -81,6 +81,11 @@ export class TunnelStore {
     await this.persist();
   }
 
+  async replaceHosts(hosts: HostConfig[]): Promise<void> {
+    this.hosts = hosts.map((host) => this.cloneHost(host));
+    await this.persist();
+  }
+
   async removeHost(id: string): Promise<void> {
     this.hosts = this.hosts.filter((item) => item.id !== id);
     await this.persist();

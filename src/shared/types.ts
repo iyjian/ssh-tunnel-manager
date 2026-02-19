@@ -80,6 +80,12 @@ export interface PrivateKeyImportResult {
   content: string;
 }
 
+export interface ConfigTransferResult {
+  path: string;
+  hostCount: number;
+  ruleCount: number;
+}
+
 export interface ConfirmDialogOptions {
   title: string;
   message: string;
@@ -97,6 +103,8 @@ export interface TunnelApi {
   startForward: (id: string) => Promise<void>;
   stopForward: (id: string) => Promise<void>;
   importPrivateKey: () => Promise<PrivateKeyImportResult | null>;
+  exportConfig: () => Promise<ConfigTransferResult | null>;
+  importConfig: () => Promise<ConfigTransferResult | null>;
   confirmAction: (options: ConfirmDialogOptions) => Promise<boolean>;
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => () => void;
 }

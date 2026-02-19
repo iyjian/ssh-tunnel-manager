@@ -29,6 +29,8 @@ const IPC_CHANNELS = {
   listHosts: 'host:list',
   saveHost: 'host:save',
   deleteHost: 'host:delete',
+  exportConfig: 'config:export',
+  importConfig: 'config:import',
   deleteForward: 'forward:delete',
   startForward: 'forward:start',
   stopForward: 'forward:stop',
@@ -50,6 +52,13 @@ interface SshEndpointDraft {
   password?: string;
   privateKey?: string;
   passphrase?: string;
+}
+
+interface ExportedConfigFile {
+  schemaVersion: number;
+  exportedAt: string;
+  app: string;
+  hosts: HostDraft[];
 }
 
 function getStore(): TunnelStore {
@@ -320,6 +329,50 @@ async function autoStartHostForwards(host: HostConfig): Promise<void> {
   }
 }
 
+function countRules(hosts: HostConfig[]): number {
+  return hosts.reduce((total, host) => total + host.forwards.length, 0);
+}
+
+function parseImportedHostDrafts(data: unknown): HostDraft[] {
+  if (Array.isArray(data)) {
+    return data as HostDraft[];
+  }
+
+  if (data && typeof data === 'object') {
+    const hosts = (data as { hosts?: unknown }).hosts;
+    if (Array.isArray(hosts)) {
+      return hosts as HostDraft[];
+    }
+  }
+
+  throw new Error('Invalid config file format. Expected an array of hosts or an object with "hosts".');
+}
+
+function ensureUniqueImportedIds(hosts: HostConfig[]): HostConfig[] {
+  const hostIds = new Set<string>();
+  const forwardIds = new Set<string>();
+
+  return hosts.map((host) => {
+    const nextHostId = host.id && !hostIds.has(host.id) ? host.id : randomUUID();
+    hostIds.add(nextHostId);
+
+    const forwards = host.forwards.map((forward) => {
+      const nextForwardId = forward.id && !forwardIds.has(forward.id) ? forward.id : randomUUID();
+      forwardIds.add(nextForwardId);
+      return {
+        ...forward,
+        id: nextForwardId,
+      };
+    });
+
+    return {
+      ...host,
+      id: nextHostId,
+      forwards,
+    };
+  });
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.listHosts, async () => {
     const hosts = getStore().listHosts();
@@ -329,6 +382,94 @@ function registerIpcHandlers(): void {
       }
     }
     return hosts.map(toHostView);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.exportConfig, async () => {
+    const hosts = getStore().listHosts();
+    const suggestedName = `ssh-tunnel-config-${new Date().toISOString().slice(0, 10)}.json`;
+    const result = await dialog.showSaveDialog({
+      title: 'Export Tunnel Config',
+      defaultPath: path.join(app.getPath('documents'), suggestedName),
+      filters: [
+        { name: 'JSON Files', extensions: ['json'] },
+      ],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+
+    const exportPayload: ExportedConfigFile = {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'ssh-tunnel-manager',
+      hosts,
+    };
+
+    await fs.writeFile(result.filePath, JSON.stringify(exportPayload, null, 2), 'utf8');
+    return {
+      path: result.filePath,
+      hostCount: hosts.length,
+      ruleCount: countRules(hosts),
+    };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.importConfig, async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Import Tunnel Config',
+      defaultPath: app.getPath('documents'),
+      properties: ['openFile'],
+      filters: [
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+
+    const selectedPath = result.filePaths[0];
+    const raw = await fs.readFile(selectedPath, 'utf8');
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('Invalid JSON file.');
+    }
+
+    const importedDrafts = parseImportedHostDrafts(parsed);
+    const validatedHosts = ensureUniqueImportedIds(importedDrafts.map((draft, index) => {
+      try {
+        return validateHostDraft(draft);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Host ${index + 1}: ${message}`);
+      }
+    }));
+
+    const existingHosts = getStore().listHosts();
+    await manager.stopAll();
+    for (const host of existingHosts) {
+      for (const forward of host.forwards) {
+        manager.clearTunnel(forward.id);
+      }
+    }
+
+    await getStore().replaceHosts(validatedHosts);
+    for (const host of validatedHosts) {
+      for (const forward of host.forwards) {
+        manager.setKnownTunnel(forward.id);
+      }
+      await autoStartHostForwards(host);
+    }
+
+    return {
+      path: selectedPath,
+      hostCount: validatedHosts.length,
+      ruleCount: countRules(validatedHosts),
+    };
   });
 
   ipcMain.handle(IPC_CHANNELS.saveHost, async (_event, draft: HostDraft) => {
