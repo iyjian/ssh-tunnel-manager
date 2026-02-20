@@ -37,6 +37,7 @@
       "buildResources": "assets",
       "output": "release"
     },
+    "artifactName": "SSH-Tunnel-Manager-${version}-${arch}-${os}.${ext}",
     "publish": [
       {
         "provider": "github",
