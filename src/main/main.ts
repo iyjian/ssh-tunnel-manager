@@ -119,6 +119,12 @@ function applyAppMenu(): void {
       label: APP_DISPLAY_NAME,
       submenu: [
         { role: 'about' },
+        {
+          label: 'Check for Updates...',
+          click: () => {
+            void updater.checkForUpdates('manual');
+          },
+        },
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },

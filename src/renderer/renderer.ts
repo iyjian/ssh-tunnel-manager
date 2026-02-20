@@ -68,7 +68,6 @@ const qaAddHostButton = requireElement<HTMLButtonElement>('#qa-add-host-btn');
 const qaAddJumpHostButton = requireElement<HTMLButtonElement>('#qa-add-jump-host-btn');
 const qaImportConfigButton = requireElement<HTMLButtonElement>('#qa-import-config-btn');
 const qaExportConfigButton = requireElement<HTMLButtonElement>('#qa-export-config-btn');
-const qaCheckUpdateButton = requireElement<HTMLButtonElement>('#qa-check-update-btn');
 const updateStatusHintElement = requireElement<HTMLParagraphElement>('#update-status-hint');
 const resetButton = requireElement<HTMLButtonElement>('#reset-btn');
 const messageElement = requireElement<HTMLParagraphElement>('#message');
@@ -197,7 +196,6 @@ function applyStaticButtonIcons(): void {
   qaAddJumpHostButton.innerHTML = buttonLabel('route', 'Add Host via Jump');
   qaImportConfigButton.innerHTML = buttonLabel('upload', 'Import Config');
   qaExportConfigButton.innerHTML = buttonLabel('download', 'Export Config');
-  qaCheckUpdateButton.innerHTML = buttonLabel('refresh', 'Check for Updates');
   closeHostDialogButton.innerHTML = iconOnly('close');
   importPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
   importJumpPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
@@ -207,8 +205,6 @@ function applyStaticButtonIcons(): void {
 }
 
 function renderUpdateState(state: UpdateState): void {
-  qaCheckUpdateButton.disabled = state.status === 'checking' || state.status === 'downloading';
-
   updateStatusHintElement.classList.remove(
     'hidden',
     'update-status-info',
@@ -1093,21 +1089,6 @@ qaExportConfigButton.addEventListener('click', () => {
     }
     setMessage(`Exported ${formatConfigSummary(result.hostCount, result.ruleCount)} to ${getFileName(result.path)}`, 'success');
   });
-});
-
-qaCheckUpdateButton.addEventListener('click', () => {
-  void window.tunnelApi.checkForUpdates()
-    .then((state) => {
-      renderUpdateState(state);
-    })
-    .catch((error) => {
-      renderUpdateState({
-        status: 'error',
-        currentVersion: 'unknown',
-        trigger: 'manual',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    });
 });
 
 closeHostDialogButton.addEventListener('click', () => {
