@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { TunnelManager, type ForwardRuntimeConfig } from './tunnelManager';
+import { AppUpdater } from './updater';
 import { TunnelStore } from './store';
 import type {
   ConfirmDialogOptions,
@@ -13,9 +14,11 @@ import type {
   HostView,
   JumpHostConfig,
   TunnelAuthType,
+  UpdateState,
 } from '../shared/types';
 
 const manager = new TunnelManager();
+const updater = new AppUpdater(() => BrowserWindow.getAllWindows()[0] ?? null);
 let store: TunnelStore | null = null;
 const APP_ICON_PATH = path.join(__dirname, '..', '..', 'assets', 'icon.png');
 const APP_DISPLAY_NAME = 'SSH Tunnel Manager';
@@ -37,6 +40,9 @@ const IPC_CHANNELS = {
   importPrivateKey: 'auth:import-private-key',
   confirmAction: 'dialog:confirm',
   status: 'forward:status',
+  getUpdateState: 'updater:get-state',
+  checkUpdates: 'updater:check',
+  updateState: 'updater:state',
 };
 
 interface DeleteForwardPayload {
@@ -579,6 +585,14 @@ function registerIpcHandlers(): void {
       content,
     };
   });
+
+  ipcMain.handle(IPC_CHANNELS.getUpdateState, async () => {
+    return updater.getState();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.checkUpdates, async () => {
+    return updater.checkForUpdates('manual');
+  });
 }
 
 function wireStatusBroadcast(): void {
@@ -586,6 +600,15 @@ function wireStatusBroadcast(): void {
     const windows = BrowserWindow.getAllWindows();
     for (const window of windows) {
       window.webContents.send(IPC_CHANNELS.status, change);
+    }
+  });
+}
+
+function wireUpdaterBroadcast(): void {
+  updater.on('state-changed', (state: UpdateState) => {
+    const windows = BrowserWindow.getAllWindows();
+    for (const window of windows) {
+      window.webContents.send(IPC_CHANNELS.updateState, state);
     }
   });
 }
@@ -605,7 +628,9 @@ async function bootstrap(): Promise<void> {
   applyAppMenu();
   registerIpcHandlers();
   wireStatusBroadcast();
+  wireUpdaterBroadcast();
   createWindow();
+  updater.start();
   await autoStartForwards();
 
   app.on('activate', () => {
@@ -629,5 +654,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  updater.stop();
   void manager.stopAll();
 });

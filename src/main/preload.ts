@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ConfirmDialogOptions, HostDraft, TunnelApi, TunnelStatusChange } from '../shared/types';
+import type {
+  ConfirmDialogOptions,
+  HostDraft,
+  TunnelApi,
+  TunnelStatusChange,
+  UpdateState,
+} from '../shared/types';
 
 const api: TunnelApi = {
   listHosts: () => ipcRenderer.invoke('host:list'),
@@ -12,6 +18,8 @@ const api: TunnelApi = {
   importPrivateKey: () => ipcRenderer.invoke('auth:import-private-key'),
   exportConfig: () => ipcRenderer.invoke('config:export'),
   importConfig: () => ipcRenderer.invoke('config:import'),
+  getUpdateState: () => ipcRenderer.invoke('updater:get-state'),
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   confirmAction: (options: ConfirmDialogOptions) => ipcRenderer.invoke('dialog:confirm', options),
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, change: TunnelStatusChange): void => {
@@ -22,6 +30,17 @@ const api: TunnelApi = {
 
     return () => {
       ipcRenderer.removeListener('forward:status', wrapped);
+    };
+  },
+  onUpdateStateChanged: (listener: (state: UpdateState) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, state: UpdateState): void => {
+      listener(state);
+    };
+
+    ipcRenderer.on('updater:state', wrapped);
+
+    return () => {
+      ipcRenderer.removeListener('updater:state', wrapped);
     };
   },
 };

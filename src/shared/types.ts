@@ -86,6 +86,27 @@ export interface ConfigTransferResult {
   ruleCount: number;
 }
 
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'up-to-date'
+  | 'unsupported'
+  | 'error';
+
+export interface UpdateState {
+  status: UpdateStatus;
+  currentVersion: string;
+  availableVersion?: string;
+  downloadedVersion?: string;
+  progressPercent?: number;
+  trigger: 'auto' | 'manual';
+  message?: string;
+  rawMessage?: string;
+}
+
 export interface ConfirmDialogOptions {
   title: string;
   message: string;
@@ -105,6 +126,9 @@ export interface TunnelApi {
   importPrivateKey: () => Promise<PrivateKeyImportResult | null>;
   exportConfig: () => Promise<ConfigTransferResult | null>;
   importConfig: () => Promise<ConfigTransferResult | null>;
+  getUpdateState: () => Promise<UpdateState>;
+  checkForUpdates: () => Promise<UpdateState>;
   confirmAction: (options: ConfirmDialogOptions) => Promise<boolean>;
   onStatusChanged: (listener: (change: TunnelStatusChange) => void) => () => void;
+  onUpdateStateChanged: (listener: (state: UpdateState) => void) => () => void;
 }

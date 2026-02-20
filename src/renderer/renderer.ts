@@ -4,6 +4,7 @@ import type {
   HostView,
   JumpHostConfig,
   TunnelAuthType,
+  UpdateState,
 } from '../shared/types';
 
 function requireElement<T extends Element>(selector: string): T {
@@ -67,6 +68,8 @@ const qaAddHostButton = requireElement<HTMLButtonElement>('#qa-add-host-btn');
 const qaAddJumpHostButton = requireElement<HTMLButtonElement>('#qa-add-jump-host-btn');
 const qaImportConfigButton = requireElement<HTMLButtonElement>('#qa-import-config-btn');
 const qaExportConfigButton = requireElement<HTMLButtonElement>('#qa-export-config-btn');
+const qaCheckUpdateButton = requireElement<HTMLButtonElement>('#qa-check-update-btn');
+const updateStatusHintElement = requireElement<HTMLParagraphElement>('#update-status-hint');
 const resetButton = requireElement<HTMLButtonElement>('#reset-btn');
 const messageElement = requireElement<HTMLParagraphElement>('#message');
 
@@ -194,12 +197,72 @@ function applyStaticButtonIcons(): void {
   qaAddJumpHostButton.innerHTML = buttonLabel('route', 'Add Host via Jump');
   qaImportConfigButton.innerHTML = buttonLabel('upload', 'Import Config');
   qaExportConfigButton.innerHTML = buttonLabel('download', 'Export Config');
+  qaCheckUpdateButton.innerHTML = buttonLabel('refresh', 'Check for Updates');
   closeHostDialogButton.innerHTML = iconOnly('close');
   importPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
   importJumpPrivateKeyButton.innerHTML = buttonLabel('upload', 'Import');
   addForwardButton.innerHTML = buttonLabel('plus', 'Add Rule');
   resetButton.innerHTML = buttonLabel('refresh', 'Reset');
   cancelHostDialogButton.innerHTML = buttonLabel('close', 'Cancel');
+}
+
+function renderUpdateState(state: UpdateState): void {
+  qaCheckUpdateButton.disabled = state.status === 'checking' || state.status === 'downloading';
+
+  updateStatusHintElement.classList.remove(
+    'hidden',
+    'update-status-info',
+    'update-status-success',
+    'update-status-error'
+  );
+
+  if (state.status === 'idle') {
+    updateStatusHintElement.classList.add('hidden');
+    updateStatusHintElement.textContent = '';
+    return;
+  }
+
+  const fallbackMessage = (() => {
+    if (state.status === 'checking') {
+      return 'Checking for updates...';
+    }
+    if (state.status === 'available') {
+      return `Update ${state.availableVersion ?? ''} is available.`;
+    }
+    if (state.status === 'downloading') {
+      const progress = typeof state.progressPercent === 'number'
+        ? ` (${Math.round(state.progressPercent)}%)`
+        : '';
+      return `Downloading update ${state.availableVersion ?? ''}${progress}`;
+    }
+    if (state.status === 'downloaded') {
+      return `Update ${state.downloadedVersion ?? state.availableVersion ?? ''} downloaded. Restart to install.`;
+    }
+    if (state.status === 'up-to-date') {
+      return `You're up to date (${state.currentVersion}).`;
+    }
+    if (state.status === 'unsupported') {
+      return `Version ${state.currentVersion}. Auto update works in packaged builds only.`;
+    }
+    if (state.status === 'error') {
+      return state.rawMessage ? `Update error: ${state.rawMessage}` : 'Update check failed.';
+    }
+    return `Version ${state.currentVersion}`;
+  })();
+
+  updateStatusHintElement.textContent = state.message ?? fallbackMessage;
+
+  if (state.status === 'error') {
+    updateStatusHintElement.classList.add('update-status-error');
+    return;
+  }
+
+  if (state.status === 'up-to-date' || state.status === 'downloaded') {
+    updateStatusHintElement.classList.add('update-status-success');
+    return;
+  }
+
+  updateStatusHintElement.classList.add('update-status-info');
 }
 
 function setMessage(text: string, level: 'default' | 'success' | 'error' = 'default'): void {
@@ -1032,6 +1095,21 @@ qaExportConfigButton.addEventListener('click', () => {
   });
 });
 
+qaCheckUpdateButton.addEventListener('click', () => {
+  void window.tunnelApi.checkForUpdates()
+    .then((state) => {
+      renderUpdateState(state);
+    })
+    .catch((error) => {
+      renderUpdateState({
+        status: 'error',
+        currentVersion: 'unknown',
+        trigger: 'manual',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    });
+});
+
 closeHostDialogButton.addEventListener('click', () => {
   closeHostDialog();
 });
@@ -1108,6 +1186,9 @@ hostDialog.addEventListener('close', () => {
 const unsubscribe = window.tunnelApi.onStatusChanged(() => {
   void refreshHosts();
 });
+const unsubscribeUpdate = window.tunnelApi.onUpdateStateChanged((state) => {
+  renderUpdateState(state);
+});
 const retryCountdownInterval = window.setInterval(updateRetryCountdowns, 1000);
 
 document.body.appendChild(floatingStatusTooltip);
@@ -1120,9 +1201,17 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('beforeunload', () => {
   unsubscribe();
+  unsubscribeUpdate();
   window.clearInterval(retryCountdownInterval);
 });
 
 applyStaticButtonIcons();
 resetHostDialogState();
+void window.tunnelApi.getUpdateState()
+  .then((state) => {
+    renderUpdateState(state);
+  })
+  .catch(() => {
+    // no-op
+  });
 void refreshHosts();

@@ -208,6 +208,24 @@ textarea {
   background: var(--color-bg-subtle);
 }
 
+.update-status-hint {
+  margin: var(--space-2) 0 0;
+  min-height: 18px;
+  font-size: var(--font-size-xs);
+}
+
+.update-status-info {
+  color: var(--color-text-tertiary);
+}
+
+.update-status-success {
+  color: var(--color-success-500);
+}
+
+.update-status-error {
+  color: var(--color-error-500);
+}
+
 .form-stack {
   margin-top: var(--space-4);
   display: grid;

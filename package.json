@@ -12,7 +12,7 @@
     "copy:renderer": "node -e \"const fs=require('fs');fs.mkdirSync('dist/renderer',{recursive:true});fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html');fs.copyFileSync('src/renderer/styles.css','dist/renderer/styles.css');\"",
     "start": "pnpm run build && electron .",
     "dev": "pnpm run build && electron .",
-    "package:mac": "pnpm run build && electron-builder --mac dmg --publish never",
+    "package:mac": "pnpm run build && electron-builder --mac dmg zip --publish never",
     "package:win": "pnpm run build && electron-builder --win nsis --publish never",
     "package:linux": "pnpm run build && electron-builder --linux AppImage --x64 --publish never"
   },
@@ -37,11 +37,19 @@
       "buildResources": "assets",
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "iyjian",
+        "repo": "ssh-tunnel-manager"
+      }
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "assets/icon.icns",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ]
     },
     "win": {
@@ -72,6 +80,7 @@
   "dependencies": {
     "asn1": "^0.2.6",
     "bcrypt-pbkdf": "^1.0.2",
+    "electron-updater": "^6.6.2",
     "ssh2": "^1.15.0"
   }
 }
